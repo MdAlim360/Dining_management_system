@@ -479,6 +479,34 @@ app.post('/api/restore', async (req, res) => {
   }
 });
 
+// ==================== RESET TEST DATA (admin-only, keeps settings/rates/subadmins) ====================
+app.delete('/api/reset-test-data', async (req, res) => {
+  try {
+    await Promise.all([
+      Student.deleteMany({}),
+      Payment.deleteMany({}),
+      Notice.deleteMany({}),
+      Poll.deleteMany({}),
+      Feedback.deleteMany({}),
+      Comment.deleteMany({}),
+      Rating.deleteMany({}),
+      Menu.deleteMany({}),
+      MealOff.deleteMany({}),
+      TempMealOn.deleteMany({}),
+      GuestMeal.deleteMany({}),
+      Bazar.deleteMany({}),
+      BazarStock.deleteMany({}),
+      ExtraMeal.deleteMany({}),
+      Audit.deleteMany({}),
+      Bill.deleteMany({}),
+      Message.deleteMany({}),
+    ]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ==================== SERVE FRONTEND ====================
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/public/index.html'));
