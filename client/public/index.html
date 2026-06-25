@@ -2092,16 +2092,20 @@ input:checked + .slider:before { transform: translateX(20px); }
           </div>
           <div class="form-group">
             <label class="form-label">মিল নির্বাচন</label>
-            <div class="meal-toggle-row">
-              <div class="meal-toggle selected" id="adminAddSokal" onclick="this.classList.toggle('selected')">☀️ সকাল</div>
-              <div class="meal-toggle selected" id="adminAddDopore" onclick="this.classList.toggle('selected')">🌤️ দুপুর</div>
-              <div class="meal-toggle selected" id="adminAddRatre" onclick="this.classList.toggle('selected')">🌙 রাত</div>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:7px 12px;margin-bottom:8px;font-size:12px;color:#166534;">
+              ☀️ <strong>সকাল সবসময় auto-included</strong> — যেকোনো মিল নিলেই সকালের চার্জ কাটা হবে।
             </div>
+            <div class="meal-toggle-row">
+              <div class="meal-toggle selected cutoff-disabled" id="adminAddSokal" style="opacity:0.55;cursor:default;">☀️ সকাল (auto)</div>
+              <div class="meal-toggle selected" id="adminAddDopore" onclick="adminMealToggle('adminAddDopore')">🌤️ দুপুর</div>
+              <div class="meal-toggle selected" id="adminAddRatre" onclick="adminMealToggle('adminAddRatre')">🌙 রাত</div>
+            </div>
+            <div id="adminMealCutoffWarning" style="display:none;margin-top:8px;padding:8px 12px;background:#fef9c3;border:1px solid #fde68a;border-radius:8px;font-size:12px;color:#854d0e;"></div>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">ডাইনিং শুরুর তারিখ *</label>
-              <input type="date" class="form-control" id="adminAddStartDate">
+              <input type="date" class="form-control" id="adminAddStartDate" onchange="adminApplyCutoff()">
             </div>
             <div class="form-group">
               <label class="form-label">প্রাথমিক জমা (টাকা)</label>
@@ -10579,6 +10583,55 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 
 
 // ==================== ADMIN MANUAL DINING ON ====================
+function adminMealToggle(id) {
+  const el = document.getElementById(id);
+  if (el.classList.contains('cutoff-disabled')) return;
+  el.classList.toggle('selected');
+  // sokal auto-include: dopore বা ratre যেকোনো একটা selected থাকলে sokal selected দেখাও
+  const anyNonSokal = document.getElementById('adminAddDopore').classList.contains('selected')
+                   || document.getElementById('adminAddRatre').classList.contains('selected');
+  const sokalEl = document.getElementById('adminAddSokal');
+  if (anyNonSokal) { sokalEl.classList.add('selected'); }
+  else { sokalEl.classList.remove('selected'); }
+}
+
+function adminApplyCutoff() {
+  const startDate = document.getElementById('adminAddStartDate').value;
+  const today = todayStr();
+  const warningEl = document.getElementById('adminMealCutoffWarning');
+
+  // sokal সবসময় auto — শুধু dopore ও ratre cutoff handle করো
+  const ids = { dopore:'adminAddDopore', ratre:'adminAddRatre' };
+
+  // আগের cutoff সরিয়ে দাও
+  Object.values(ids).forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('cutoff-disabled');
+    el.classList.add('selected');
+  });
+  if (warningEl) warningEl.style.display = 'none';
+
+  if (!startDate || startDate !== today) return;
+
+  const disabled = getTimeCutoffDisabledMeals().filter(m => m !== 'sokal'); // sokal skip
+  if (disabled.length === 0) return;
+
+  const nameMap = { dopore:'দুপুর', ratre:'রাত' };
+
+  disabled.forEach(mKey => {
+    const el = document.getElementById(ids[mKey]);
+    if (!el) return;
+    el.classList.add('cutoff-disabled');
+    el.classList.remove('selected');
+  });
+
+  if (warningEl) {
+    const names = disabled.map(m => nameMap[m]).join(', ');
+    warningEl.innerHTML = `⏰ <strong>${names}</strong> মিলের সময় পেরিয়ে গেছে — আজকের জন্য দেওয়া যাবে না। (☀️ সকাল সবসময় auto-included।)`;
+    warningEl.style.display = 'block';
+  }
+}
+
 function adminManualDiningOn() {
   const name = document.getElementById('adminAddName').value.trim();
   const batch = document.getElementById('adminAddBatch').value.trim();
@@ -10595,12 +10648,16 @@ function adminManualDiningOn() {
   }
   if (password.length < 4) return showToast('পাসওয়ার্ড কমপক্ষে ৪ অক্ষর', 'error');
 
+  const doporeSelected = document.getElementById('adminAddDopore').classList.contains('selected');
+  const ratreSelected = document.getElementById('adminAddRatre').classList.contains('selected');
+  const anyMeal = doporeSelected || ratreSelected;
+  // auto-sokal: student wizard এর মতো — যেকোনো মিল নিলে সকাল auto-include
   const meals = {
-    sokal: document.getElementById('adminAddSokal').classList.contains('selected'),
-    dopore: document.getElementById('adminAddDopore').classList.contains('selected'),
-    ratre: document.getElementById('adminAddRatre').classList.contains('selected'),
+    sokal: anyMeal, // always true if any meal selected
+    dopore: doporeSelected,
+    ratre: ratreSelected,
   };
-  if (!meals.sokal && !meals.dopore && !meals.ratre) return showToast('কমপক্ষে একটি মিল নির্বাচন করুন', 'error');
+  if (!anyMeal) return showToast('কমপক্ষে একটি মিল নির্বাচন করুন (দুপুর বা রাত)', 'error');
 
   const rates = getData('milRates', { sokal:25, dopore:35, ratre:25, cooking:5 });
   const mealCostOnly2 = (meals.sokal?rates.sokal:0)+(meals.dopore?rates.dopore:0)+(meals.ratre?rates.ratre:0);
