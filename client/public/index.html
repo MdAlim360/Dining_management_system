@@ -4417,43 +4417,68 @@ function calcDailyRate() {
   const doporeSel = document.getElementById('toggleDopore').classList.contains('selected');
   const ratreSel = document.getElementById('toggleRatre').classList.contains('selected');
 
-  // সকাল auto-included: যেকোনো meal নিলে সকালের charge ধরা হয়
+  // সকাল auto-included: যেকোনো meal নিলে সকালের charge ধরা হয় (এটা প্ল্যানের normal/full রেট — cutoff নয়)
   const anyMeal = sokalSel || doporeSel || ratreSel;
-  const effectiveSokal = anyMeal;
+  const planMeals = { sokal: anyMeal, dopore: doporeSel, ratre: ratreSel };
 
-  let total = 0;
-  if (effectiveSokal) total += rates.sokal;
-  if (doporeSel) total += rates.dopore;
-  if (ratreSel) total += rates.ratre;
-  const daily = total + (total > 0 ? rates.cooking : 0);
+  const el = document.getElementById('dailyRateCalc');
+  if (!anyMeal) { el.innerHTML = 'মিল নির্বাচন করুন'; return; }
+
+  const fullCost = (planMeals.sokal?rates.sokal:0) + (planMeals.dopore?rates.dopore:0) + (planMeals.ratre?rates.ratre:0);
+  const fullDaily = fullCost + rates.cooking; // স্বাভাবিক প্রতিদিনের রেট (cutoff ছাড়া)
 
   const diningDates = getData('adminDiningDates', null);
   const selDate = document.getElementById('onStartDate') ? document.getElementById('onStartDate').value : '';
+  const today = todayStr();
   let cycleDays = CYCLE_DAYS;
   let cycleLabel = '১৫ দিনে';
-  let hintText = '';
 
   if (diningDates && diningDates.end && selDate) {
     cycleDays = daysBetween(selDate, diningDates.end) + 1;
     cycleLabel = `${cycleDays} দিনে`;
-    hintText = `${formatDate(selDate)} থেকে ${formatDate(diningDates.end)} = ${cycleDays} দিন`;
     const hint = document.getElementById('startDateHint');
-    if (hint) hint.textContent = hintText;
+    if (hint) hint.textContent = `${formatDate(selDate)} থেকে ${formatDate(diningDates.end)} = ${cycleDays} দিন`;
   } else if (diningDates && diningDates.start && diningDates.end) {
     cycleDays = daysBetween(diningDates.start, diningDates.end) + 1;
     cycleLabel = `${cycleDays} দিনে`;
   }
 
-  const el = document.getElementById('dailyRateCalc');
-  if (!anyMeal) { el.innerHTML = 'মিল নির্বাচন করুন'; return; }
+  // ── আজ শুরু হলে এবং কিছু মিলের সময় পেরিয়ে গেলে — শুধু আজকের জন্য আলাদা (কম) হিসাব দেখাও ──
+  const disabledMeals = (selDate === today) ? getTimeCutoffDisabledMeals() : [];
+  const missedToday = disabledMeals.filter(m => planMeals[m]); // প্ল্যানে আছে কিন্তু আজ পাবে না
 
-  // breakdown: সকাল auto-included note
+  if (missedToday.length > 0) {
+    const nm = { sokal:'সকাল', dopore:'দুপুর', ratre:'রাত' };
+    const todayMeals = {
+      sokal: planMeals.sokal && !missedToday.includes('sokal'),
+      dopore: planMeals.dopore && !missedToday.includes('dopore'),
+      ratre: planMeals.ratre && !missedToday.includes('ratre'),
+    };
+    // আজ অন্য কোনো (non-sokal) মিল available থাকলে সকাল auto-include থাকবে
+    todayMeals.sokal = todayMeals.sokal || todayMeals.dopore || todayMeals.ratre;
+    const todayCost = (todayMeals.sokal?rates.sokal:0) + (todayMeals.dopore?rates.dopore:0) + (todayMeals.ratre?rates.ratre:0);
+    const todayTotal = todayCost > 0 ? todayCost + rates.cooking : 0;
+    const todayNames = [todayMeals.sokal?'সকাল':'', todayMeals.dopore?'দুপুর':'', todayMeals.ratre?'রাত':''].filter(Boolean).join('+') || '—';
+    const missedNames = missedToday.map(m => nm[m]).join('+');
+
+    if (cycleDays > 1) {
+      const remainDays = cycleDays - 1;
+      const grandTotal = todayTotal + fullDaily * remainDays;
+      el.innerHTML = `⏰ আজ <strong>${missedNames}</strong> পাবেন না — আজকের মিল: ${todayNames} = ৳${todayTotal}<br>`
+        + `আজ ৳${todayTotal} + আগামীকাল থেকে ৳${fullDaily}×${remainDays}দিন = <strong>৳${grandTotal}</strong>`;
+    } else {
+      el.innerHTML = `⏰ আজ <strong>${missedNames}</strong> পাবেন না — আজকের বিল: <strong>৳${todayTotal}</strong> (${todayNames || 'কোনো মিল নেই'})`;
+    }
+    return;
+  }
+
+  // ── স্বাভাবিক (cutoff নেই) — পুরো প্ল্যানের রেট দেখাও ──
   const mealBreak = [];
-  if (effectiveSokal) mealBreak.push(`সকাল ৳${rates.sokal}`);
-  if (doporeSel) mealBreak.push(`দুপুর ৳${rates.dopore}`);
-  if (ratreSel) mealBreak.push(`রাত ৳${rates.ratre}`);
+  if (planMeals.sokal) mealBreak.push(`সকাল ৳${rates.sokal}`);
+  if (planMeals.dopore) mealBreak.push(`দুপুর ৳${rates.dopore}`);
+  if (planMeals.ratre) mealBreak.push(`রাত ৳${rates.ratre}`);
   mealBreak.push(`কুকিং ৳${rates.cooking}`);
-  el.innerHTML = `${mealBreak.join(' + ')} = <strong>৳${daily}/দিন</strong> | ${cycleLabel}: <strong>৳${daily*cycleDays}</strong>`;
+  el.innerHTML = `${mealBreak.join(' + ')} = <strong>৳${fullDaily}/দিন</strong> | ${cycleLabel}: <strong>৳${fullDaily*cycleDays}</strong>`;
 }
 
 function selectOnPayMethod(m) {
