@@ -10991,14 +10991,13 @@ function adminSelectMealPlan(plan) {
 }
 
 function adminUpdateMealPlanPrices() {
-  const rates = getData('milRates', { sokal:25, dopore:35, ratre:25, cooking:5 });
+  const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
   const plans = {
-    sokal_dopore: { sokal:true, dopore:true, ratre:false },
-    sokal_ratre:  { sokal:true, dopore:false, ratre:true },
-    all:          { sokal:true, dopore:true, ratre:true }
+    sokal_dopore: (rates.comboSD || 0) + (rates.cookingSD || 0),
+    sokal_ratre:  (rates.comboSR || 0) + (rates.cookingSR || 0),
+    all:          (rates.comboAll || 0) + (rates.cookingAll || 0),
   };
-  Object.entries(plans).forEach(([key, m]) => {
-    const cost = (m.sokal?rates.sokal:0)+(m.dopore?rates.dopore:0)+(m.ratre?rates.ratre:0)+rates.cooking;
+  Object.entries(plans).forEach(([key, cost]) => {
     const el = document.getElementById('adminPlanPrice_' + key);
     if (el) el.textContent = 'দৈনিক ৳' + cost;
   });
@@ -11070,9 +11069,15 @@ function adminManualDiningOn() {
   };
   if (!anyMeal) return showToast('একটি মিল প্ল্যান নির্বাচন করুন', 'error');
 
-  const rates = getData('milRates', { sokal:25, dopore:35, ratre:25, cooking:5 });
-  const mealCostOnly2 = (meals.sokal?rates.sokal:0)+(meals.dopore?rates.dopore:0)+(meals.ratre?rates.ratre:0);
-  const dailyRate = mealCostOnly2 > 0 ? mealCostOnly2 + rates.cooking : 0;
+  const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
+  let dailyRate = 0;
+  if (doporeSelected && ratreSelected) {
+    dailyRate = (rates.comboAll || 0) + (rates.cookingAll || 0);
+  } else if (doporeSelected && !ratreSelected) {
+    dailyRate = (rates.comboSD || 0) + (rates.cookingSD || 0);
+  } else if (!doporeSelected && ratreSelected) {
+    dailyRate = (rates.comboSR || 0) + (rates.cookingSR || 0);
+  }
   const diningDates = getData('adminDiningDates', null);
   const cycleEnd = diningDates ? diningDates.end : addDays(startDate, CYCLE_DAYS - 1);
 
