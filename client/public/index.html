@@ -4311,9 +4311,18 @@ function showDiningOnNewModal() {
       startDateSel.appendChild(opt);
       d = addDays(d, 1);
     }
-    // Default to today if in range, else first future date
+    // Default to today if in range AND not all meals cutoff-disabled,
+    // else skip to tomorrow (or first available future date)
     if (today >= diningDates.start && today <= diningDates.end) {
-      startDateSel.value = today;
+      const todayCutoffMeals = getTimeCutoffDisabledMeals();
+      const allCutoff = todayCutoffMeals.length === 3;
+      if (!allCutoff) {
+        startDateSel.value = today;
+      } else {
+        // আজকের সব মিল cutoff — আগামীকাল থেকে default
+        const tomorrow = addDays(today, 1);
+        startDateSel.value = (tomorrow <= diningDates.end) ? tomorrow : '';
+      }
     } else {
       // find first non-past date
       let fd = diningDates.start;
@@ -4321,8 +4330,10 @@ function showDiningOnNewModal() {
       startDateSel.value = fd <= diningDates.end ? fd : '';
     }
     startDateGroup.style.display = '';
-    document.getElementById('startDateHint').textContent =
-      `এই তারিখ থেকে ${formatDate(diningDates.end)} পর্যন্ত হিসাব হবে।`;
+    const selectedVal = startDateSel.value;
+    document.getElementById('startDateHint').textContent = selectedVal
+      ? `${formatDate(selectedVal)} থেকে ${formatDate(diningDates.end)} পর্যন্ত = ${Math.round((new Date(diningDates.end) - new Date(selectedVal)) / 86400000) + 1} দিন`
+      : `এই তারিখ থেকে ${formatDate(diningDates.end)} পর্যন্ত হিসাব হবে।`;
   } else {
     dateBox.innerHTML = '⚠️ অ্যাডমিন এখনো ডাইনিং তারিখ নির্ধারণ করেননি। তারিখ নির্ধারণের পর নিবন্ধন করুন।';
     document.getElementById('adminDateInfoBox').style.background = 'var(--warning-bg)';
