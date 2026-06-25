@@ -4116,18 +4116,23 @@ function wzNext(fromStep) {
           dopore: planMeals.dopore && !pending.meals.includes('dopore'),
           ratre: planMeals.ratre && !pending.meals.includes('ratre'),
         };
-        // auto-sokal for today: অন্য কোনো meal available থাকলে সকাল
+        // auto-sokal for today: কিন্তু sokal নিজেই missed হলে force করা যাবে না
+        const sokalIsMissed = pending.meals.includes('sokal');
         const todayHasOther = todayMeals.dopore || todayMeals.ratre;
-        todayMeals.sokal = todayMeals.sokal || todayHasOther;
+        if (!sokalIsMissed) todayMeals.sokal = todayMeals.sokal || todayHasOther;
         const todayCost = (todayMeals.sokal?units.sokal:0)+(todayMeals.dopore?units.dopore:0)+(todayMeals.ratre?units.ratre:0);
         const todayTotal = todayCost > 0 ? todayCost + comboCooking : 0;
         const remainDays = totalDays - 1;
         const grandTotal = todayTotal + fullDaily * remainDays;
         const todayMealNames = [todayMeals.sokal?'সকাল':'', todayMeals.dopore?'দুপুর':'', todayMeals.ratre?'রাত':''].filter(Boolean).join('+');
+        // আজকের meal বিবরণ: sokal+dopore missed, শুধু রাত → note with combo billing info
+        const sokalDoporeCase = pending.meals.includes('sokal') && pending.meals.includes('dopore') && todayMeals.ratre;
+        const todayNote = sokalDoporeCase
+          ? `আজকে <strong>সকাল ও দুপুর</strong> সময় শেষ — শুধু <strong>রাত</strong> পাবেন। Billing হবে সকাল+রাত combo অনুযায়ী (আগামীকাল থেকে সকালও পাবেন)`
+          : `আজকে <strong>${missedNames}</strong> মিলের সময় শেষ — আজকে পাবেন না${todayMealNames ? `<br>আজকের মিল: ${todayMealNames} → ৳${todayTotal}` : ''}`;
         billingHtml = `
           <div style="grid-column:span 2;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:8px;font-size:12px;color:#92400e;margin-top:2px;">
-            ⏰ আজকে <strong>${missedNames}</strong> মিলের সময় শেষ — আজকে পাবেন না<br>
-            আজকের মিল: ${todayMealNames} → ৳${todayTotal}
+            ⏰ ${todayNote}
           </div>
           <div style="grid-column:span 2;background:var(--primary);color:white;border-radius:8px;padding:8px;text-align:center;margin-top:4px;">
             আজকে ৳${todayTotal} + আগামীকাল থেকে ৳${fullDaily}×${remainDays}দিন = <strong>৳${grandTotal}</strong>
@@ -4178,8 +4183,13 @@ function wzNext(fromStep) {
       });
       // আজকের missing meals = cutoff হয়েছে এমন meals যেগুলো user-এর plan-এ থাকবে
       // (selected meals এর সাথে auto-sokal সহ)
+      // বিশেষ ক্ষেত্র: sokal+dopore দুটোই cutoff, user SR plan নিলে → sokal আজ পাবে না (plan-এ থাকবে, কাল থেকে পাবে)
       const effectiveSelected = [...new Set([...(selectedMeals.length > 0 ? ['sokal'] : []), ...selectedMeals])];
-      const missingToday = disabledMeals.filter(m => effectiveSelected.includes(m) || m === 'sokal' && selectedMeals.length > 0);
+      const sokalAndDoporeOut = disabledMeals.includes('sokal') && disabledMeals.includes('dopore');
+      const missingToday = disabledMeals.filter(m => {
+        if (m === 'sokal' && sokalAndDoporeOut && effectiveSelected.includes('ratre')) return true;
+        return effectiveSelected.includes(m) || (m === 'sokal' && selectedMeals.length > 0);
+      });
       // Missing এর মধ্যে যেগুলো user plan-এ রাখতে চায় কিন্তু আজকে পাবে না
       const missingNames = [...new Set(missingToday)].map(m => nameMap[m]).join('+');
       // আগামীকাল থেকে কোন কোন extra meal add হবে
@@ -4288,8 +4298,17 @@ function applyCutoffForDate() {
       const nameMap = { sokal:'সকাল', dopore:'দুপুর', ratre:'রাত' };
       const names = disabled.map(m => nameMap[m]).join(', ');
       const hasSokalDisabled = disabled.includes('sokal');
-      warningEl.innerHTML = `⏰ <strong>${names}</strong> মিলের সময় পেরিয়ে গেছে — আজকের জন্য পাবেন না।`
-        + (hasSokalDisabled ? ' (অন্য মিল নিলে সকালের চার্জ স্বয়ংক্রিয়ভাবে যোগ হবে)' : '');
+      const hasDoporeDisabled = disabled.includes('dopore');
+      const hasRatreDisabled = disabled.includes('ratre');
+      // সকাল+দুপুর দুটোই শেষ, শুধু রাত বাকি → SR combo তে enroll হবে কিন্তু আজ শুধু রাত পাবে
+      if (hasSokalDisabled && hasDoporeDisabled && !hasRatreDisabled) {
+        warningEl.innerHTML = `⏰ <strong>সকাল ও দুপুর</strong> মিলের সময় পেরিয়ে গেছে।`
+          + ` আজকের জন্য শুধু <strong>রাত</strong> পাবেন।`
+          + ` তবে billing হবে <strong>সকাল+রাত combo</strong> অনুযায়ী (আগামীকাল থেকে সকালও পাবেন)।`;
+      } else {
+        warningEl.innerHTML = `⏰ <strong>${names}</strong> মিলের সময় পেরিয়ে গেছে — আজকের জন্য পাবেন না।`
+          + (hasSokalDisabled && !hasDoporeDisabled ? ' (অন্য মিল নিলে সকালের চার্জ স্বয়ংক্রিয়ভাবে যোগ হবে)' : '');
+      }
     }
     warningEl.classList.add('show');
   }
@@ -4784,7 +4803,11 @@ function calcDailyRate() {
       dopore: planMeals.dopore && !missedToday.includes('dopore'),
       ratre: planMeals.ratre && !missedToday.includes('ratre'),
     };
-    todayMeals.sokal = todayMeals.sokal || todayMeals.dopore || todayMeals.ratre;
+    // auto-sokal: কিন্তু sokal নিজেই আজকে missed হলে force করা যাবে না
+    const sokalIsMissedToday = missedToday.includes('sokal');
+    if (!sokalIsMissedToday) {
+      todayMeals.sokal = todayMeals.sokal || todayMeals.dopore || todayMeals.ratre;
+    }
     // আজকের effective cost: individual units দিয়ে
     const todayCost = (todayMeals.sokal ? units.sokal : 0)
                     + (todayMeals.dopore ? units.dopore : 0)
