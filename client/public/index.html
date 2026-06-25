@@ -1463,28 +1463,15 @@ input:checked + .slider:before { transform: translateX(20px); }
       <div class="card">
         <div class="section-title">🚫 মিল বন্ধ করুন</div>
         <div id="mealOffLockBanner"></div>
-        <p class="text-muted mb-2" style="font-size:13px;">আগামীকাল থেকে চক্রের শেষ তারিখ পর্যন্ত মিল বন্ধ করতে পারবেন। যে কম্বো বন্ধ করবেন তার সবগুলো মিল একসাথে বন্ধ হবে।</p>
+        <p class="text-muted mb-2" style="font-size:13px;">আগামীকাল থেকে চক্রের শেষ তারিখ পর্যন্ত মিল বন্ধ করতে পারবেন। আপনার নিয়মিত প্ল্যানে যে মিলগুলো চালু আছে শুধু সেগুলোই এখানে বন্ধ করার অপশনে দেখাবে — যেটা বন্ধ রাখবেন তার রেট কাটবে না, বাকি যে মিল চালু থাকবে তার রেট কাটবে।</p>
         <p id="offDatePickerNote" class="mb-2" style="font-size:12px;"></p>
         <div class="form-group">
           <label class="form-label">তারিখ নির্বাচন (একাধিক)</label>
           <div id="offDatePicker" class="date-range-picker"></div>
         </div>
         <div class="form-group mt-3">
-          <label class="form-label">কোন মিল বন্ধ? (কম্বো বেছে নিন)</label>
-          <div class="meal-plan-row" id="offMealPlanRow">
-            <div class="meal-plan-card" id="offPlanSokalDopore" onclick="selectOffMealPlan('sokal_dopore')">
-              <div class="meal-plan-icons">☀️🌤️</div>
-              <div class="meal-plan-name">সকাল + দুপুর</div>
-            </div>
-            <div class="meal-plan-card" id="offPlanSokalRatre" onclick="selectOffMealPlan('sokal_ratre')">
-              <div class="meal-plan-icons">☀️🌙</div>
-              <div class="meal-plan-name">সকাল + রাত</div>
-            </div>
-            <div class="meal-plan-card" id="offPlanAll" onclick="selectOffMealPlan('all')">
-              <div class="meal-plan-icons">☀️🌤️🌙</div>
-              <div class="meal-plan-name">সকাল + দুপুর + রাত</div>
-            </div>
-          </div>
+          <label class="form-label">কোন মিল বন্ধ? (আপনার চালু থাকা মিল অনুযায়ী অপশন)</label>
+          <div class="meal-plan-row" id="offMealPlanRow"></div>
           <div id="offPlanSelected" style="margin-top:8px;font-size:13px;color:var(--primary);font-weight:600;min-height:20px;"></div>
         </div>
         <button class="btn btn-danger btn-full" id="submitMealOffBtn" onclick="submitMealOff()">মিল বন্ধ করুন</button>
@@ -4557,25 +4544,78 @@ function onHallChange(hall) {
 // মিল অফ কম্বো সিলেকশন — dining-on এর মতো ৩টি plan
 let _selectedOffPlan = null; // 'sokal_dopore' | 'sokal_ratre' | 'all'
 
+// ছাত্রের নিয়মিত প্ল্যানে কোন মিল চালু আছে তার ভিত্তিতে মিল-অফের ভ্যালিড অপশন তৈরি করে।
+// নিয়ম:
+// - সকাল + দুপুর প্ল্যান হলে → শুধু "দুপুর" অফ করা যাবে (সকাল একা অফ হয় না)
+// - সকাল + রাত প্ল্যান হলে → শুধু "রাত" অফ করা যাবে
+// - সকাল + দুপুর + রাত (৩ বেলা) প্ল্যান হলে → "দুপুর", "রাত", এবং "সকাল+দুপুর+রাত" (৩ বেলাই) — এই ৩টি অপশন দেখাবে
+// যেটা অফ রাখা হবে তার রেট কাটবে না, বাকি যে মিল চালু থাকবে তার রেট কাটবে।
+function getOffPlanOptionsForStudent(student) {
+  const m = (student && student.meals) || {};
+  if (m.dopore && m.ratre) {
+    // ৩ বেলা প্ল্যান
+    return [
+      { plan: 'dopore',      icons: '🌤️',     label: 'দুপুর',            meals: ['dopore'] },
+      { plan: 'ratre',       icons: '🌙',      label: 'রাত',              meals: ['ratre'] },
+      { plan: 'all',         icons: '☀️🌤️🌙', label: 'সকাল + দুপুর + রাত', meals: ['sokal','dopore','ratre'] },
+    ];
+  }
+  if (m.dopore) {
+    // সকাল + দুপুর প্ল্যান — দুপুর একা অফ (সকাল বিল থাকবে), অথবা সকাল+দুপুর দুটোই অফ (কোনো বিল কাটবে না)
+    return [
+      { plan: 'dopore',       icons: '🌤️',    label: 'দুপুর',          meals: ['dopore'] },
+      { plan: 'sokal_dopore', icons: '☀️🌤️',  label: 'সকাল + দুপুর',   meals: ['sokal','dopore'] },
+    ];
+  }
+  if (m.ratre) {
+    // সকাল + রাত প্ল্যান — রাত একা অফ (সকাল বিল থাকবে), অথবা সকাল+রাত দুটোই অফ (কোনো বিল কাটবে না)
+    return [
+      { plan: 'ratre',       icons: '🌙',     label: 'রাত',           meals: ['ratre'] },
+      { plan: 'sokal_ratre', icons: '☀️🌙',   label: 'সকাল + রাত',    meals: ['sokal','ratre'] },
+    ];
+  }
+  return [];
+}
+
+function renderOffMealPlanOptions() {
+  const row = document.getElementById('offMealPlanRow');
+  if (!row) return;
+  const options = getOffPlanOptionsForStudent(currentStudent);
+  window._offPlanOptions = options;
+  if (options.length === 0) {
+    row.innerHTML = '<div class="text-muted" style="font-size:13px;">আপনার ডাইনিং প্ল্যানে এখনো কোনো মিল চালু নেই</div>';
+    _selectedOffPlan = null;
+    return;
+  }
+  row.innerHTML = options.map(o => `
+    <div class="meal-plan-card" id="offPlanCard_${o.plan}" onclick="selectOffMealPlan('${o.plan}')">
+      <div class="meal-plan-icons">${o.icons}</div>
+      <div class="meal-plan-name">${o.label}</div>
+    </div>`).join('');
+  // আগের সিলেকশন এই প্ল্যানের জন্য বৈধ না হলে রিসেট করো
+  if (_selectedOffPlan && !options.some(o => o.plan === _selectedOffPlan)) {
+    _selectedOffPlan = null;
+    const info = document.getElementById('offPlanSelected');
+    if (info) info.textContent = '';
+  }
+}
+
 function selectOffMealPlan(plan) {
   _selectedOffPlan = plan;
-  ['offPlanSokalDopore','offPlanSokalRatre','offPlanAll'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.classList.remove('selected');
+  const options = window._offPlanOptions || [];
+  options.forEach(o => {
+    const el = document.getElementById('offPlanCard_' + o.plan);
+    if (el) el.classList.toggle('selected', o.plan === plan);
   });
-  const cardMap = { sokal_dopore:'offPlanSokalDopore', sokal_ratre:'offPlanSokalRatre', all:'offPlanAll' };
-  const card = document.getElementById(cardMap[plan]);
-  if (card) card.classList.add('selected');
-  const labelMap = { sokal_dopore:'☀️ সকাল + 🌤️ দুপুর', sokal_ratre:'☀️ সকাল + 🌙 রাত', all:'☀️ সকাল + 🌤️ দুপুর + 🌙 রাত' };
+  const opt = options.find(o => o.plan === plan);
   const info = document.getElementById('offPlanSelected');
-  if (info) info.textContent = labelMap[plan] ? `নির্বাচিত: ${labelMap[plan]}` : '';
+  if (info) info.textContent = opt ? `নির্বাচিত: বন্ধ হবে ${opt.label}` : '';
 }
 
 function getOffMealsFromPlan(plan) {
-  if (plan === 'sokal_dopore') return ['sokal','dopore'];
-  if (plan === 'sokal_ratre') return ['sokal','ratre'];
-  if (plan === 'all') return ['sokal','dopore','ratre'];
-  return [];
+  const options = window._offPlanOptions || getOffPlanOptionsForStudent(currentStudent);
+  const opt = options.find(o => o.plan === plan);
+  return opt ? opt.meals.slice() : [];
 }
 
 function onOffMealToggle(meal, el) {
@@ -5507,6 +5547,9 @@ function renderOffDatePicker() {
   const diningDates = getData('adminDiningDates', null);
   const cycleEnd = student.cycleEnd || (diningDates && diningDates.end) || addDays(today, 14);
   const tomorrow = addDays(today, 1);
+
+  // ছাত্রের নিয়মিত প্ল্যান অনুযায়ী মিল-অফ অপশন (কার্ড) রিফ্রেশ করো
+  renderOffMealPlanOptions();
 
   // 🔒 settings.mealOffLocked থেকে instantly রিফ্লেক্ট করো (consistent key, diningLocked নয়)
   const locked = isMealOffLocked();
