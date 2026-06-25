@@ -43,7 +43,13 @@ const MilRatesSchema = new mongoose.Schema({
   dopore: { type: Number, default: 40 },
   ratre: { type: Number, default: 30 },
   cooking: { type: Number, default: 5 },
-}, { _id: false });
+  comboSD: { type: Number, default: 0 },
+  cookingSD: { type: Number, default: 5 },
+  comboSR: { type: Number, default: 0 },
+  cookingSR: { type: Number, default: 5 },
+  comboAll: { type: Number, default: 0 },
+  cookingAll: { type: Number, default: 5 },
+}, { _id: false, strict: false });
 const MilRates = mongoose.model('MilRates', MilRatesSchema);
 
 // ==================== STUDENTS ====================
