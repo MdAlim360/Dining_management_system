@@ -2128,15 +2128,28 @@ input:checked + .slider:before { transform: translateX(20px); }
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">মিল নির্বাচন</label>
-            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:7px 12px;margin-bottom:8px;font-size:12px;color:#166534;">
-              ☀️ <strong>সকাল সবসময় auto-included</strong> — যেকোনো মিল নিলেই সকালের চার্জ কাটা হবে।
+            <label class="form-label">মিল প্ল্যান নির্বাচন করুন *</label>
+            <div class="meal-plan-row" id="adminAddMealPlanRow" style="grid-template-columns:repeat(3,1fr);">
+              <div class="meal-plan-card" id="adminPlan_sokal_dopore" onclick="adminSelectMealPlan('sokal_dopore')">
+                <div class="meal-plan-icons">☀️🌤️</div>
+                <div class="meal-plan-name">সকাল + দুপুর</div>
+                <div class="meal-plan-price" id="adminPlanPrice_sokal_dopore">—</div>
+              </div>
+              <div class="meal-plan-card" id="adminPlan_sokal_ratre" onclick="adminSelectMealPlan('sokal_ratre')">
+                <div class="meal-plan-icons">☀️🌙</div>
+                <div class="meal-plan-name">সকাল + রাত</div>
+                <div class="meal-plan-price" id="adminPlanPrice_sokal_ratre">—</div>
+              </div>
+              <div class="meal-plan-card selected" id="adminPlan_all" onclick="adminSelectMealPlan('all')">
+                <div class="meal-plan-icons">☀️🌤️🌙</div>
+                <div class="meal-plan-name">সকাল + দুপুর + রাত</div>
+                <div class="meal-plan-price" id="adminPlanPrice_all">—</div>
+              </div>
             </div>
-            <div class="meal-toggle-row">
-              <div class="meal-toggle selected cutoff-disabled" id="adminAddSokal" style="opacity:0.55;cursor:default;">☀️ সকাল (auto)</div>
-              <div class="meal-toggle selected" id="adminAddDopore" onclick="adminMealToggle('adminAddDopore')">🌤️ দুপুর</div>
-              <div class="meal-toggle selected" id="adminAddRatre" onclick="adminMealToggle('adminAddRatre')">🌙 রাত</div>
-            </div>
+            <!-- hidden state holders (used by adminManualDiningOn) -->
+            <input type="hidden" id="adminAddSokal" value="1">
+            <input type="hidden" id="adminAddDopore" value="1">
+            <input type="hidden" id="adminAddRatre" value="1">
             <div id="adminMealCutoffWarning" style="display:none;margin-top:8px;padding:8px 12px;background:#fef9c3;border:1px solid #fde68a;border-radius:8px;font-size:12px;color:#854d0e;"></div>
           </div>
           <div class="form-row">
@@ -10958,6 +10971,40 @@ function adminMealToggle(id) {
   else { sokalEl.classList.remove('selected'); }
 }
 
+function adminSelectMealPlan(plan) {
+  // সব card থেকে selected সরাও
+  ['sokal_dopore','sokal_ratre','all'].forEach(p => {
+    const el = document.getElementById('adminPlan_' + p);
+    if (el) el.classList.remove('selected');
+  });
+  // নির্বাচিত card select করো
+  const sel = document.getElementById('adminPlan_' + plan);
+  if (sel) sel.classList.add('selected');
+
+  // hidden input update
+  const s = document.getElementById('adminAddSokal');
+  const d = document.getElementById('adminAddDopore');
+  const r = document.getElementById('adminAddRatre');
+  if (plan === 'sokal_dopore')  { s.value='1'; d.value='1'; r.value='0'; }
+  else if (plan === 'sokal_ratre') { s.value='1'; d.value='0'; r.value='1'; }
+  else                          { s.value='1'; d.value='1'; r.value='1'; }
+}
+
+function adminUpdateMealPlanPrices() {
+  const rates = getData('milRates', { sokal:25, dopore:35, ratre:25, cooking:5 });
+  const plans = {
+    sokal_dopore: { sokal:true, dopore:true, ratre:false },
+    sokal_ratre:  { sokal:true, dopore:false, ratre:true },
+    all:          { sokal:true, dopore:true, ratre:true }
+  };
+  Object.entries(plans).forEach(([key, m]) => {
+    const cost = (m.sokal?rates.sokal:0)+(m.dopore?rates.dopore:0)+(m.ratre?rates.ratre:0)+rates.cooking;
+    const el = document.getElementById('adminPlanPrice_' + key);
+    if (el) el.textContent = 'দৈনিক ৳' + cost;
+  });
+}
+
+
 function adminApplyCutoff() {
   const startDate = document.getElementById('adminAddStartDate').value;
   const today = todayStr();
@@ -11011,16 +11058,17 @@ function adminManualDiningOn() {
   }
   if (password.length < 4) return showToast('পাসওয়ার্ড কমপক্ষে ৪ অক্ষর', 'error');
 
-  const doporeSelected = document.getElementById('adminAddDopore').classList.contains('selected');
-  const ratreSelected = document.getElementById('adminAddRatre').classList.contains('selected');
-  const anyMeal = doporeSelected || ratreSelected;
-  // auto-sokal: student wizard এর মতো — যেকোনো মিল নিলে সকাল auto-include
+  const sokalVal = document.getElementById('adminAddSokal').value === '1';
+  const doporeSelected = document.getElementById('adminAddDopore').value === '1';
+  const ratreSelected = document.getElementById('adminAddRatre').value === '1';
+  const anyMeal = sokalVal || doporeSelected || ratreSelected;
+  // plan card থেকে নির্বাচিত meals
   const meals = {
-    sokal: anyMeal, // always true if any meal selected
+    sokal: sokalVal,
     dopore: doporeSelected,
     ratre: ratreSelected,
   };
-  if (!anyMeal) return showToast('কমপক্ষে একটি মিল নির্বাচন করুন (দুপুর বা রাত)', 'error');
+  if (!anyMeal) return showToast('একটি মিল প্ল্যান নির্বাচন করুন', 'error');
 
   const rates = getData('milRates', { sokal:25, dopore:35, ratre:25, cooking:5 });
   const mealCostOnly2 = (meals.sokal?rates.sokal:0)+(meals.dopore?rates.dopore:0)+(meals.ratre?rates.ratre:0);
@@ -11083,6 +11131,10 @@ function renderManualDiningTab() {
   // Auto-set start date to today if empty
   const startDateEl = document.getElementById('adminAddStartDate');
   if (startDateEl && !startDateEl.value) startDateEl.value = todayStr();
+  // plan card price update
+  adminUpdateMealPlanPrices();
+  // default: all selected
+  adminSelectMealPlan('all');
 }
 
 // ==================== ADMIN MANUAL PAYMENT ====================
