@@ -2428,29 +2428,64 @@ input:checked + .slider:before { transform: translateX(20px); }
 
       <!-- MIL RATES TAB -->
       <div class="tab-content" id="admin-milrates">
-        <div class="section-title">💵 মিল রেট নির্ধারণ</div>
+        <div class="section-title">💵 মিল রেট নির্ধারণ (কম্বো অনুযায়ী)</div>
         <div class="card">
-          <p class="text-muted mb-3" style="font-size:13px;">৩ বেলা খেলে: সকাল+দুপুর+রাত = ৮৫টাকা/দিন + কুকিং চার্জ ৫টাকা = ৯০টাকা/দিন (১৫ দিনে ১৩৫০টাকা)। সকাল ছাড়া দুপুর/রাত একা নেওয়া যায় না — দুপুর বা রাত চালু করলে সকাল অটো চালু হয়ে যাবে। তাই: শুধু দুপুর (সকাল+দুপুর) = ৫৫+৫=৬০টাকা/দিন, শুধু রাত (সকাল+রাত) = ৪৫+৫=৫০টাকা/দিন — এই হিসাব মেলাতে নিচে সকাল=১৫, দুপুর=৪০, রাত=৩০ দিন।</p>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">সকালের রেট (৳)</label>
-              <input type="number" class="form-control" id="rateSokal" placeholder="যেমন: 15">
+          <p class="text-muted mb-3" style="font-size:13px;">প্রতিটি কম্বো প্ল্যানের জন্য আলাদা দৈনিক রেট সেট করুন। ছাত্র ডাইনিং চালু করার সময় কম্বো বেছে নিলে সেই রেট অনুযায়ী বিল হবে।</p>
+
+          <!-- সকাল + দুপুর -->
+          <div style="background:#fef9c3;border:1.5px solid #fde047;border-radius:10px;padding:14px;margin-bottom:12px;">
+            <div style="font-size:14px;font-weight:700;margin-bottom:10px;color:#854d0e;">☀️🌤️ সকাল + দুপুর</div>
+            <div class="form-row">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">মিল রেট (৳/দিন)</label>
+                <input type="number" class="form-control" id="rateComboSD" placeholder="যেমন: 55">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">কুকিং চার্জ (৳/দিন)</label>
+                <input type="number" class="form-control" id="rateCookingSD" placeholder="যেমন: 5">
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">দুপুরের রেট (৳)</label>
-              <input type="number" class="form-control" id="rateDopore" placeholder="যেমন: 40">
-            </div>
+            <div id="previewSD" style="margin-top:8px;font-size:12px;color:#854d0e;font-weight:600;"></div>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">রাতের রেট (৳)</label>
-              <input type="number" class="form-control" id="rateRatre" placeholder="যেমন: 30">
+
+          <!-- সকাল + রাত -->
+          <div style="background:#ede9fe;border:1.5px solid #c4b5fd;border-radius:10px;padding:14px;margin-bottom:12px;">
+            <div style="font-size:14px;font-weight:700;margin-bottom:10px;color:#5b21b6;">☀️🌙 সকাল + রাত</div>
+            <div class="form-row">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">মিল রেট (৳/দিন)</label>
+                <input type="number" class="form-control" id="rateComboSR" placeholder="যেমন: 45">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">কুকিং চার্জ (৳/দিন)</label>
+                <input type="number" class="form-control" id="rateCookingSR" placeholder="যেমন: 5">
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">কুকিং চার্জ (৳/দিন)</label>
-              <input type="number" class="form-control" id="rateCooking" value="5">
-            </div>
+            <div id="previewSR" style="margin-top:8px;font-size:12px;color:#5b21b6;font-weight:600;"></div>
           </div>
+
+          <!-- সকাল + দুপুর + রাত -->
+          <div style="background:#dcfce7;border:1.5px solid #86efac;border-radius:10px;padding:14px;margin-bottom:12px;">
+            <div style="font-size:14px;font-weight:700;margin-bottom:10px;color:#166534;">☀️🌤️🌙 সকাল + দুপুর + রাত</div>
+            <div class="form-row">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">মিল রেট (৳/দিন)</label>
+                <input type="number" class="form-control" id="rateComboAll" placeholder="যেমন: 85">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">কুকিং চার্জ (৳/দিন)</label>
+                <input type="number" class="form-control" id="rateCookingAll" placeholder="যেমন: 5">
+              </div>
+            </div>
+            <div id="previewAll" style="margin-top:8px;font-size:12px;color:#166534;font-weight:600;"></div>
+          </div>
+
+          <!-- hidden legacy fields — billing engine এখনও এগুলো পড়ে, combo থেকে ব্যাক-ক্যালকুলেট করা হবে -->
+          <input type="hidden" id="rateSokal">
+          <input type="hidden" id="rateDopore">
+          <input type="hidden" id="rateRatre">
+          <input type="hidden" id="rateCooking">
+
           <div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px;" id="ratePreview"></div>
           <button class="btn btn-primary" onclick="saveMilRates()">রেট সেভ করুন</button>
         </div>
@@ -3998,7 +4033,8 @@ function wzNext(fromStep) {
 
     // disabled মিলগুলো plan-এ রাখবেন কিনা confirm নেওয়া
     const proceedToSummary = () => {
-      const rates = getData('milRates', { sokal:25, dopore:35, ratre:25, cooking:5 });
+      const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
+      const units = deriveMealUnits(rates);
       // toggles এর current state (confirm callback এর পরে update হয়ে থাকে)
       const rawDoporeNow = document.getElementById('toggleDopore').classList.contains('selected');
       const rawRatreNow = document.getElementById('toggleRatre').classList.contains('selected');
@@ -4010,14 +4046,26 @@ function wzNext(fromStep) {
         ratre: rawRatreNow,
       };
 
-      const mealLabels = [];
-      if (planMeals.sokal) mealLabels.push(`☀️ সকাল ৳${rates.sokal}`);
-      if (planMeals.dopore) mealLabels.push(`🌤️ দুপুর ৳${rates.dopore}`);
-      if (planMeals.ratre) mealLabels.push(`🌙 রাত ৳${rates.ratre}`);
+      // combo-based labels & daily rate
+      let comboMeal = 0, comboCooking = 0, comboLabel = '';
+      if (planMeals.dopore && planMeals.ratre) {
+        comboMeal = rates.comboAll || 0; comboCooking = rates.cookingAll || rates.cooking || 5;
+        comboLabel = '☀️ সকাল+🌤️ দুপুর+🌙 রাত';
+      } else if (planMeals.dopore) {
+        comboMeal = rates.comboSD || 0; comboCooking = rates.cookingSD || rates.cooking || 5;
+        comboLabel = '☀️ সকাল+🌤️ দুপুর';
+      } else if (planMeals.ratre) {
+        comboMeal = rates.comboSR || 0; comboCooking = rates.cookingSR || rates.cooking || 5;
+        comboLabel = '☀️ সকাল+🌙 রাত';
+      } else {
+        comboMeal = rates.comboSD || rates.comboSR || rates.comboAll || 0;
+        comboCooking = rates.cookingSD || rates.cooking || 5;
+        comboLabel = '☀️ সকাল';
+      }
+      const mealLabels = [comboLabel];
+      const fullDaily = comboMeal + comboCooking;
 
       const totalDays = daysBetween(startDate, diningDates.end) + 1;
-      const fullDailyCost = (planMeals.sokal?rates.sokal:0) + (planMeals.dopore?rates.dopore:0) + (planMeals.ratre?rates.ratre:0);
-      const fullDaily = fullDailyCost > 0 ? fullDailyCost + rates.cooking : 0;
 
       const pending = window._cutoffMealOffPending;
       const hasMissedToday = pending && startDate === today && pending.meals && pending.meals.length > 0;
@@ -4035,8 +4083,8 @@ function wzNext(fromStep) {
         // auto-sokal for today: অন্য কোনো meal available থাকলে সকাল
         const todayHasOther = todayMeals.dopore || todayMeals.ratre;
         todayMeals.sokal = todayMeals.sokal || todayHasOther;
-        const todayCost = (todayMeals.sokal?rates.sokal:0)+(todayMeals.dopore?rates.dopore:0)+(todayMeals.ratre?rates.ratre:0);
-        const todayTotal = todayCost > 0 ? todayCost + rates.cooking : 0;
+        const todayCost = (todayMeals.sokal?units.sokal:0)+(todayMeals.dopore?units.dopore:0)+(todayMeals.ratre?units.ratre:0);
+        const todayTotal = todayCost > 0 ? todayCost + comboCooking : 0;
         const remainDays = totalDays - 1;
         const grandTotal = todayTotal + fullDaily * remainDays;
         const todayMealNames = [todayMeals.sokal?'সকাল':'', todayMeals.dopore?'দুপুর':'', todayMeals.ratre?'রাত':''].filter(Boolean).join('+');
@@ -4052,10 +4100,10 @@ function wzNext(fromStep) {
         // শুধু ১ দিন (আজই শেষ)
         const nm2 = { sokal:'সকাল', dopore:'দুপুর', ratre:'রাত' };
         const missedNames2 = pending.meals.map(m => nm2[m]).join('+');
-        const todayCost2 = (planMeals.sokal&&!pending.meals.includes('sokal')?rates.sokal:0)
-          +(planMeals.dopore&&!pending.meals.includes('dopore')?rates.dopore:0)
-          +(planMeals.ratre&&!pending.meals.includes('ratre')?rates.ratre:0);
-        const todayOnly = todayCost2 > 0 ? todayCost2 + rates.cooking : 0;
+        const todayCost2 = (planMeals.sokal&&!pending.meals.includes('sokal')?units.sokal:0)
+          +(planMeals.dopore&&!pending.meals.includes('dopore')?units.dopore:0)
+          +(planMeals.ratre&&!pending.meals.includes('ratre')?units.ratre:0);
+        const todayOnly = todayCost2 > 0 ? todayCost2 + comboCooking : 0;
         billingHtml = `
           <div style="grid-column:span 2;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:8px;font-size:12px;color:#92400e;margin-top:2px;">
             ⏰ আজকে <strong>${missedNames2}</strong> মিলের সময় শেষ — পাবেন না
@@ -4101,12 +4149,16 @@ function wzNext(fromStep) {
       // আগামীকাল থেকে কোন কোন extra meal add হবে
       const tomorrowExtra = disabledMeals.filter(m => m !== 'sokal' && !selectedMeals.includes(m));
       const tomorrowExtraNames = tomorrowExtra.map(m => nameMap[m]).join('+');
-      const rates = getData('milRates', { sokal:25, dopore:35, ratre:25, cooking:5 });
-      // আগামীকালের full rate (user-select + missing all)
+      const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
+      // আগামীকালের full rate (user-select + missing all) — combo-based
       const allMealsSelected = [...new Set([...selectedMeals, ...disabledMeals])];
-      const fullDailyCost = (allMealsSelected.includes('sokal')||allMealsSelected.length>0?rates.sokal:0)
-        + (allMealsSelected.includes('dopore')?rates.dopore:0)
-        + (allMealsSelected.includes('ratre')?rates.ratre:0) + rates.cooking;
+      const hasDopore = allMealsSelected.includes('dopore');
+      const hasRatre  = allMealsSelected.includes('ratre');
+      let fullDailyCost = 0;
+      if (hasDopore && hasRatre) fullDailyCost = (rates.comboAll||0) + (rates.cookingAll||rates.cooking||5);
+      else if (hasDopore)       fullDailyCost = (rates.comboSD||0) + (rates.cookingSD||rates.cooking||5);
+      else if (hasRatre)        fullDailyCost = (rates.comboSR||0) + (rates.cookingSR||rates.cooking||5);
+      else fullDailyCost = (rates.comboSD||rates.comboSR||rates.comboAll||0) + (rates.cookingSD||rates.cooking||5);
       const tomorrowMsg = tomorrowExtra.length > 0
         ? `\n\nহ্যাঁ করলে আগামীকাল থেকে ${tomorrowExtraNames} যোগ হবে → প্রতিদিন ৳${fullDailyCost}`
         : '';
@@ -4534,17 +4586,17 @@ function selectMealPlan(plan) {
 
 // বর্তমান selection + cutoff অনুযায়ী কম্বো-কার্ডের visual state ও দাম আপডেট করে
 function syncMealPlanCards() {
-  const rates = getData('milRates', { sokal:25, dopore:35, ratre:25, cooking:5 });
+  const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
   const plan = window._selectedMealPlan || 'all';
 
-  const priceSD = rates.sokal + rates.dopore + rates.cooking;
-  const priceSR = rates.sokal + rates.ratre + rates.cooking;
-  const priceAll = rates.sokal + rates.dopore + rates.ratre + rates.cooking;
+  const priceSD  = (rates.comboSD  || 0) + (rates.cookingSD  || rates.cooking || 5);
+  const priceSR  = (rates.comboSR  || 0) + (rates.cookingSR  || rates.cooking || 5);
+  const priceAll = (rates.comboAll || 0) + (rates.cookingAll || rates.cooking || 5);
 
   const pEl = id => document.getElementById(id);
   if (pEl('priceSokalDopore')) pEl('priceSokalDopore').textContent = `৳${priceSD}/দিন`;
-  if (pEl('priceSokalRatre')) pEl('priceSokalRatre').textContent = `৳${priceSR}/দিন`;
-  if (pEl('priceAll')) pEl('priceAll').textContent = `৳${priceAll}/দিন`;
+  if (pEl('priceSokalRatre'))  pEl('priceSokalRatre').textContent  = `৳${priceSR}/দিন`;
+  if (pEl('priceAll'))         pEl('priceAll').textContent         = `৳${priceAll}/দিন`;
 
   const cardIds = { sokal_dopore: 'planSokalDopore', sokal_ratre: 'planSokalRatre', all: 'planAll' };
   Object.entries(cardIds).forEach(([p, id]) => {
@@ -4557,8 +4609,8 @@ function syncMealPlanCards() {
   const isDoporeOut = disabledMeals.includes('dopore');
   const isRatreOut = disabledMeals.includes('ratre');
   if (pEl('planSokalDopore')) pEl('planSokalDopore').classList.toggle('cutoff-disabled', isDoporeOut);
-  if (pEl('planSokalRatre')) pEl('planSokalRatre').classList.toggle('cutoff-disabled', isRatreOut);
-  if (pEl('planAll')) pEl('planAll').classList.toggle('cutoff-disabled', isDoporeOut && isRatreOut);
+  if (pEl('planSokalRatre'))  pEl('planSokalRatre').classList.toggle('cutoff-disabled', isRatreOut);
+  if (pEl('planAll'))         pEl('planAll').classList.toggle('cutoff-disabled', isDoporeOut && isRatreOut);
 }
 
 // startDate আজ হলেই cutoff প্রযোজ্য, নাহলে কিছুই disabled না
@@ -4571,21 +4623,37 @@ function getCutoffDisabledMealsForSelectedDate() {
 
 function calcDailyRate() {
   syncMealPlanCards();
-  const rates = getData('milRates', { sokal:25, dopore:35, ratre:25, cooking:5 });
+  const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
+  const units = deriveMealUnits(rates);
 
   const sokalSel = document.getElementById('toggleSokal').classList.contains('selected');
   const doporeSel = document.getElementById('toggleDopore').classList.contains('selected');
   const ratreSel = document.getElementById('toggleRatre').classList.contains('selected');
 
-  // সকাল auto-included: যেকোনো meal নিলে সকালের charge ধরা হয় (এটা প্ল্যানের normal/full রেট — cutoff নয়)
+  // সকাল auto-included: যেকোনো meal নিলে সকালের charge ধরা হয়
   const anyMeal = sokalSel || doporeSel || ratreSel;
   const planMeals = { sokal: anyMeal, dopore: doporeSel, ratre: ratreSel };
 
   const el = document.getElementById('dailyRateCalc');
   if (!anyMeal) { el.innerHTML = 'মিল নির্বাচন করুন'; return; }
 
-  const fullCost = (planMeals.sokal?rates.sokal:0) + (planMeals.dopore?rates.dopore:0) + (planMeals.ratre?rates.ratre:0);
-  const fullDaily = fullCost + rates.cooking; // স্বাভাবিক প্রতিদিনের রেট (cutoff ছাড়া)
+  // combo-based full daily rate
+  let comboMeal = 0, comboCooking = 0, comboLabel = '';
+  if (planMeals.dopore && planMeals.ratre) {
+    comboMeal = rates.comboAll || 0; comboCooking = rates.cookingAll || rates.cooking || 5;
+    comboLabel = 'সকাল+দুপুর+রাত';
+  } else if (planMeals.dopore) {
+    comboMeal = rates.comboSD || 0; comboCooking = rates.cookingSD || rates.cooking || 5;
+    comboLabel = 'সকাল+দুপুর';
+  } else if (planMeals.ratre) {
+    comboMeal = rates.comboSR || 0; comboCooking = rates.cookingSR || rates.cooking || 5;
+    comboLabel = 'সকাল+রাত';
+  } else {
+    comboMeal = rates.comboSD || rates.comboSR || rates.comboAll || 0;
+    comboCooking = rates.cookingSD || rates.cooking || 5;
+    comboLabel = 'সকাল';
+  }
+  const fullDaily = comboMeal + comboCooking;
 
   const diningDates = getData('adminDiningDates', null);
   const selDate = document.getElementById('onStartDate') ? document.getElementById('onStartDate').value : '';
@@ -4603,9 +4671,9 @@ function calcDailyRate() {
     cycleLabel = `${cycleDays} দিনে`;
   }
 
-  // ── আজ শুরু হলে এবং কিছু মিলের সময় পেরিয়ে গেলে — শুধু আজকের জন্য আলাদা (কম) হিসাব দেখাও ──
+  // ── আজ শুরু হলে এবং কিছু মিলের সময় পেরিয়ে গেলে — শুধু আজকের জন্য আলাদা হিসাব ──
   const disabledMeals = (selDate === today) ? getTimeCutoffDisabledMeals() : [];
-  const missedToday = disabledMeals.filter(m => planMeals[m]); // প্ল্যানে আছে কিন্তু আজ পাবে না
+  const missedToday = disabledMeals.filter(m => planMeals[m]);
 
   if (missedToday.length > 0) {
     const nm = { sokal:'সকাল', dopore:'দুপুর', ratre:'রাত' };
@@ -4614,10 +4682,12 @@ function calcDailyRate() {
       dopore: planMeals.dopore && !missedToday.includes('dopore'),
       ratre: planMeals.ratre && !missedToday.includes('ratre'),
     };
-    // আজ অন্য কোনো (non-sokal) মিল available থাকলে সকাল auto-include থাকবে
     todayMeals.sokal = todayMeals.sokal || todayMeals.dopore || todayMeals.ratre;
-    const todayCost = (todayMeals.sokal?rates.sokal:0) + (todayMeals.dopore?rates.dopore:0) + (todayMeals.ratre?rates.ratre:0);
-    const todayTotal = todayCost > 0 ? todayCost + rates.cooking : 0;
+    // আজকের effective cost: individual units দিয়ে
+    const todayCost = (todayMeals.sokal ? units.sokal : 0)
+                    + (todayMeals.dopore ? units.dopore : 0)
+                    + (todayMeals.ratre ? units.ratre : 0);
+    const todayTotal = todayCost > 0 ? todayCost + comboCooking : 0;
     const todayNames = [todayMeals.sokal?'সকাল':'', todayMeals.dopore?'দুপুর':'', todayMeals.ratre?'রাত':''].filter(Boolean).join('+') || '—';
     const missedNames = missedToday.map(m => nm[m]).join('+');
 
@@ -4632,13 +4702,8 @@ function calcDailyRate() {
     return;
   }
 
-  // ── স্বাভাবিক (cutoff নেই) — পুরো প্ল্যানের রেট দেখাও ──
-  const mealBreak = [];
-  if (planMeals.sokal) mealBreak.push(`সকাল ৳${rates.sokal}`);
-  if (planMeals.dopore) mealBreak.push(`দুপুর ৳${rates.dopore}`);
-  if (planMeals.ratre) mealBreak.push(`রাত ৳${rates.ratre}`);
-  mealBreak.push(`কুকিং ৳${rates.cooking}`);
-  el.innerHTML = `${mealBreak.join(' + ')} = <strong>৳${fullDaily}/দিন</strong> | ${cycleLabel}: <strong>৳${fullDaily*cycleDays}</strong>`;
+  // ── স্বাভাবিক (cutoff নেই) — কম্বো রেট দেখাও ──
+  el.innerHTML = `${comboLabel}: মিল ৳${comboMeal} + কুকিং ৳${comboCooking} = <strong>৳${fullDaily}/দিন</strong> | ${cycleLabel}: <strong>৳${fullDaily*cycleDays}</strong>`;
 }
 
 function selectOnPayMethod(m) {
@@ -4725,9 +4790,9 @@ function submitDiningOn() {
     return;
   }
 
-  const rates = getData('milRates', { sokal:25, dopore:35, ratre:25, cooking:5 });
-  const mealCostOnly = (meals.sokal ? rates.sokal:0) + (meals.dopore ? rates.dopore:0) + (meals.ratre ? rates.ratre:0);
-  const dailyRate = mealCostOnly > 0 ? mealCostOnly + rates.cooking : 0;
+  const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
+  const comboFull = getComboFull({ meals }, rates);
+  const dailyRate = comboFull.meal > 0 ? comboFull.meal + comboFull.cooking : 0;
   // Total due = daily rate × days from chosen start to cycle end
   const cycleDays = daysBetween(startDate, cycleEnd) + 1;
 
@@ -4881,10 +4946,10 @@ function calcMealCostSoFar(student) {
   const end = student.cycleEnd || addDays(start, CYCLE_DAYS - 1);
   const effectiveEnd = today < end ? today : end;
   const days = daysBetween(start, effectiveEnd) + 1;
-  // Calculate actual cost accounting for meal-offs and temporary meal-ons
   const offs = getData('mealOffs', {});
   const tempOns = getData('tempMealOns', {});
-  const rates = getData('milRates', { sokal:25, dopore:35, ratre:25, cooking:5 });
+  const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
+  const comboFull = getComboFull(student, rates);
   let totalCost = 0;
   let activeMealDays = 0;
   for (let i = 0; i < days; i++) {
@@ -4892,20 +4957,11 @@ function calcMealCostSoFar(student) {
     if (d > today) break;
     const dayOffs = (offs[student.id] || {})[d] || [];
     const dayTempOns = (tempOns[student.id] || {})[d] || [];
-    let dayCost = 0;
-    if (student.meals.sokal && !dayOffs.includes('sokal')) dayCost += rates.sokal || 25;
-    if (student.meals.dopore && !dayOffs.includes('dopore')) dayCost += rates.dopore || 35;
-    if (student.meals.ratre && !dayOffs.includes('ratre')) dayCost += rates.ratre || 25;
-    // Section D — অস্থায়ী মিল চালু: শুধু নিয়মিত প্ল্যানে নেই এমন মিল যুক্ত হয়
-    if (dayTempOns.includes('sokal') && !student.meals.sokal) dayCost += rates.sokal || 25;
-    if (dayTempOns.includes('dopore') && !student.meals.dopore) dayCost += rates.dopore || 35;
-    if (dayTempOns.includes('ratre') && !student.meals.ratre) dayCost += rates.ratre || 25;
-    // রান্না চার্জ পরে একসাথে যোগ হবে (নতুন লজিক)
+    const dayCost = calcDayMealCost(student, d, dayOffs, dayTempOns, rates);
     if (dayCost > 0) activeMealDays++;
     totalCost += dayCost;
   }
-  // নতুন কুকিং চার্জ লজিক: ১–৭ দিন → per-day ৳৫ | ৮+ দিন → flat ৳৭৫
-  totalCost += calcCookingCharge(activeMealDays, rates.cooking || 5);
+  totalCost += calcCookingCharge(activeMealDays, comboFull.cooking);
   return totalCost;
 }
 
@@ -4948,6 +5004,49 @@ function calcDue(student) {
 // ==================== মোট বিল (ডায়নামিক) ====================
 // স্টার্ট ডেট থেকে আজ (বা চক্র শেষ, যেটা আগে) পর্যন্ত মোট বিল।
 // মিল অফ করলে কমবে, টেম্পোরারি মিল ও অনুমোদিত গেস্ট মিল চালু করলে বাড়বে।
+// ==================== COMBO RATE HELPERS ====================
+// কম্বো রেট থেকে individual meal unit বের করা (linear algebra)
+// comboSD = sokal+dopore, comboSR = sokal+ratre, comboAll = sokal+dopore+ratre
+// → sokal = comboSD + comboSR - comboAll
+// → dopore = comboAll - comboSR
+// → ratre  = comboAll - comboSD
+function deriveMealUnits(rates) {
+  const sd  = rates.comboSD  || 0;
+  const sr  = rates.comboSR  || 0;
+  const all = rates.comboAll || 0;
+  return {
+    sokal:  Math.max(0, sd + sr - all),
+    dopore: Math.max(0, all - sr),
+    ratre:  Math.max(0, all - sd),
+  };
+}
+
+// একটি ছাত্রের পরিকল্পনা ও আজকের active meals-এর উপর ভিত্তি করে combo cooking charge
+function getComboFull(student, rates) {
+  const m = student.meals || {};
+  if (m.dopore && m.ratre) return { meal: rates.comboAll || 0, cooking: rates.cookingAll || rates.cooking || 5 };
+  if (m.dopore)             return { meal: rates.comboSD  || 0, cooking: rates.cookingSD  || rates.cooking || 5 };
+  if (m.ratre)              return { meal: rates.comboSR  || 0, cooking: rates.cookingSR  || rates.cooking || 5 };
+  // শুধু সকাল (fallback)
+  return { meal: rates.comboSD || rates.comboSR || rates.comboAll || 0, cooking: rates.cookingSD || rates.cooking || 5 };
+}
+
+// একটি নির্দিষ্ট দিনে কতটুকু cost — offs এবং tempOns বিবেচনা করে combo-based billing
+function calcDayMealCost(student, d, dayOffs, dayTempOns, rates) {
+  const units = deriveMealUnits(rates);
+  const m = student.meals || {};
+  let cost = 0;
+  // নিয়মিত মিল: plan-এ আছে + off নয়
+  if (m.sokal  && !dayOffs.includes('sokal'))  cost += units.sokal;
+  if (m.dopore && !dayOffs.includes('dopore')) cost += units.dopore;
+  if (m.ratre  && !dayOffs.includes('ratre'))  cost += units.ratre;
+  // অস্থায়ী মিল: plan-এ নেই কিন্তু আজ চালু
+  if (dayTempOns.includes('sokal')  && !m.sokal)  cost += units.sokal;
+  if (dayTempOns.includes('dopore') && !m.dopore) cost += units.dopore;
+  if (dayTempOns.includes('ratre')  && !m.ratre)  cost += units.ratre;
+  return cost;
+}
+
 function calcTotalBill(student) {
   if (student.diningStatus === 'pending') return 0;
   const start = student.startDate;
@@ -4955,26 +5054,22 @@ function calcTotalBill(student) {
   const end = student.cycleEnd || addDays(start, CYCLE_DAYS - 1);
   const offs = getData('mealOffs', {});
   const tempOns = getData('tempMealOns', {});
-  const rates = getData('milRates', { sokal:25, dopore:35, ratre:25, cooking:5 });
+  const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
   let totalCost = 0;
   let activeMealDaysFull = 0;
+  // cooking charge: ছাত্রের combo plan অনুযায়ী
+  const comboFull = getComboFull(student, rates);
   let d = start;
   while (d <= end) {
     const dayOffs = (offs[student.id] || {})[d] || [];
     const dayTempOns = (tempOns[student.id] || {})[d] || [];
-    let dayCost = 0;
-    if (student.meals.sokal && !dayOffs.includes('sokal')) dayCost += rates.sokal || 25;
-    if (student.meals.dopore && !dayOffs.includes('dopore')) dayCost += rates.dopore || 35;
-    if (student.meals.ratre && !dayOffs.includes('ratre')) dayCost += rates.ratre || 25;
-    if (dayTempOns.includes('sokal') && !student.meals.sokal) dayCost += rates.sokal || 25;
-    if (dayTempOns.includes('dopore') && !student.meals.dopore) dayCost += rates.dopore || 35;
-    if (dayTempOns.includes('ratre') && !student.meals.ratre) dayCost += rates.ratre || 25;
+    const dayCost = calcDayMealCost(student, d, dayOffs, dayTempOns, rates);
     if (dayCost > 0) activeMealDaysFull++;
     totalCost += dayCost;
     d = addDays(d, 1);
   }
-  // নতুন কুকিং চার্জ লজিক
-  totalCost += calcCookingCharge(activeMealDaysFull, rates.cooking || 5);
+  // কুকিং চার্জ
+  totalCost += calcCookingCharge(activeMealDaysFull, comboFull.cooking);
   const guestMeals = getData('guestMeals', []);
   const guestCost = guestMeals
     .filter(g => g.studentId === student.id && (g.status || 'approved') === 'approved')
@@ -5023,11 +5118,12 @@ function activateStudentDining(s, resetCycle = false) {
 
 function renderMealStatus() {
   const rates = getData('milRates', {});
+  const units = deriveMealUnits(rates);
   const el = document.getElementById('todayMealStatus');
   const meals = [
-    { key:'sokal', label:'☀️ সকাল', rate: rates.sokal },
-    { key:'dopore', label:'🌤️ দুপুর', rate: rates.dopore },
-    { key:'ratre', label:'🌙 রাত', rate: rates.ratre },
+    { key:'sokal', label:'☀️ সকাল', rate: units.sokal },
+    { key:'dopore', label:'🌤️ দুপুর', rate: units.dopore },
+    { key:'ratre', label:'🌙 রাত', rate: units.ratre },
   ];
   const offs = getData('mealOffs', {});
   const todayOff = (offs[currentStudent.id] || {})[todayStr()] || [];
@@ -5042,15 +5138,18 @@ function renderMealStatus() {
 }
 
 function renderMealRateDisplay() {
-  const rates = getData('milRates', {});
+  const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
   const el = document.getElementById('mealRateDisplay');
+  const priceSD  = (rates.comboSD  || 0) + (rates.cookingSD  || rates.cooking || 5);
+  const priceSR  = (rates.comboSR  || 0) + (rates.cookingSR  || rates.cooking || 5);
+  const priceAll = (rates.comboAll || 0) + (rates.cookingAll || rates.cooking || 5);
   el.innerHTML = [
-    { l:'☀️ সকাল', v: rates.sokal },
-    { l:'🌤️ দুপুর', v: rates.dopore },
-    { l:'🌙 রাত', v: rates.ratre },
+    { l:'☀️ সকাল+🌤️ দুপুর', v: priceSD },
+    { l:'☀️ সকাল+🌙 রাত', v: priceSR },
+    { l:'☀️ সকাল+🌤️ দুপুর+🌙 রাত', v: priceAll },
   ].map(r => `<div style="text-align:center;padding:12px;background:var(--bg);border-radius:10px;">
     <div style="font-size:11px;color:var(--text-muted);">${r.l}</div>
-    <div style="font-size:20px;font-weight:700;color:var(--primary);">৳${r.v}</div>
+    <div style="font-size:20px;font-weight:700;color:var(--primary);">৳${r.v}/দিন</div>
   </div>`).join('');
 
   const el2 = document.getElementById('selectedMeals');
@@ -10017,11 +10116,14 @@ function markThreadRead() {
 
 // ==================== MIL RATES ====================
 function renderMilRates() {
-  const rates = getData('milRates', { sokal:25, dopore:35, ratre:25, cooking:5 });
-  document.getElementById('rateSokal').value = rates.sokal;
-  document.getElementById('rateDopore').value = rates.dopore;
-  document.getElementById('rateRatre').value = rates.ratre;
-  document.getElementById('rateCooking').value = rates.cooking;
+  const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
+  const el = id => document.getElementById(id);
+  if(el('rateComboSD'))   el('rateComboSD').value   = rates.comboSD   || '';
+  if(el('rateCookingSD')) el('rateCookingSD').value  = rates.cookingSD  != null ? rates.cookingSD : 5;
+  if(el('rateComboSR'))   el('rateComboSR').value   = rates.comboSR   || '';
+  if(el('rateCookingSR')) el('rateCookingSR').value  = rates.cookingSR  != null ? rates.cookingSR : 5;
+  if(el('rateComboAll'))  el('rateComboAll').value  = rates.comboAll  || '';
+  if(el('rateCookingAll'))el('rateCookingAll').value = rates.cookingAll != null ? rates.cookingAll : 5;
   updateRatePreview();
   renderAdminCredInfo();
   renderPaymentNumberSettings();
@@ -10034,11 +10136,12 @@ function renderMilRates() {
 }
 
 function updateRatePreview() {
-  const s = parseFloat(document.getElementById('rateSokal').value)||0;
-  const d = parseFloat(document.getElementById('rateDopore').value)||0;
-  const r = parseFloat(document.getElementById('rateRatre').value)||0;
-  const c = parseFloat(document.getElementById('rateCooking').value)||0;
-  const daily = s+d+r+c;
+  const sd   = parseFloat(document.getElementById('rateComboSD')?.value)||0;
+  const cSD  = parseFloat(document.getElementById('rateCookingSD')?.value)||0;
+  const sr   = parseFloat(document.getElementById('rateComboSR')?.value)||0;
+  const cSR  = parseFloat(document.getElementById('rateCookingSR')?.value)||0;
+  const all  = parseFloat(document.getElementById('rateComboAll')?.value)||0;
+  const cAll = parseFloat(document.getElementById('rateCookingAll')?.value)||0;
   const diningDates = getData('adminDiningDates', null);
   let cycleDays = CYCLE_DAYS;
   let cycleLabel = '১৫ দিনে';
@@ -10046,13 +10149,17 @@ function updateRatePreview() {
     cycleDays = daysBetween(diningDates.start, diningDates.end) + 1;
     cycleLabel = cycleDays + ' দিনে';
   }
-  document.getElementById('ratePreview').innerHTML = `
-    সকাল: ৳${s} | দুপুর: ৳${d} | রাত: ৳${r} | কুকিং: ৳${c}<br>
-    <strong>৩ বেলা (মিল): ৳${s+d+r} + কুকিং ৳${c} = ৳${daily}/দিন | ${cycleLabel}: ৳${daily*cycleDays}</strong>
-    <br><small style="color:var(--text-muted);">মিল না নিলে কুকিং চার্জ লাগে না</small>
+  const el = id => document.getElementById(id);
+  if(el('previewSD'))  el('previewSD').textContent  = sd  ? `মোট: ৳${sd+cSD}/দিন | ${cycleLabel}: ৳${(sd+cSD)*cycleDays}` : '';
+  if(el('previewSR'))  el('previewSR').textContent  = sr  ? `মোট: ৳${sr+cSR}/দিন | ${cycleLabel}: ৳${(sr+cSR)*cycleDays}` : '';
+  if(el('previewAll')) el('previewAll').textContent = all ? `মোট: ৳${all+cAll}/দিন | ${cycleLabel}: ৳${(all+cAll)*cycleDays}` : '';
+  if(el('ratePreview')) el('ratePreview').innerHTML = `
+    <strong>☀️🌤️ সকাল+দুপুর:</strong> ৳${sd} + কুকিং ৳${cSD} = ৳${sd+cSD}/দিন &nbsp;|&nbsp;
+    <strong>☀️🌙 সকাল+রাত:</strong> ৳${sr} + কুকিং ৳${cSR} = ৳${sr+cSR}/দিন &nbsp;|&nbsp;
+    <strong>☀️🌤️🌙 সবকটি:</strong> ৳${all} + কুকিং ৳${cAll} = ৳${all+cAll}/দিন
   `;
 }
-['rateSokal','rateDopore','rateRatre','rateCooking'].forEach(id => {
+['rateComboSD','rateCookingSD','rateComboSR','rateCookingSR','rateComboAll','rateCookingAll'].forEach(id => {
   document.getElementById(id)?.addEventListener('input', updateRatePreview);
 });
 
@@ -10123,13 +10230,23 @@ function renderPaymentNumberInfo(method, containerId) {
 
 function saveMilRates() {
   const rates = {
-    sokal: parseFloat(document.getElementById('rateSokal').value)||25,
-    dopore: parseFloat(document.getElementById('rateDopore').value)||35,
-    ratre: parseFloat(document.getElementById('rateRatre').value)||25,
-    cooking: parseFloat(document.getElementById('rateCooking').value)||5,
+    // combo-based rates
+    comboSD:      parseFloat(document.getElementById('rateComboSD')?.value)||0,
+    cookingSD:    parseFloat(document.getElementById('rateCookingSD')?.value)||5,
+    comboSR:      parseFloat(document.getElementById('rateComboSR')?.value)||0,
+    cookingSR:    parseFloat(document.getElementById('rateCookingSR')?.value)||5,
+    comboAll:     parseFloat(document.getElementById('rateComboAll')?.value)||0,
+    cookingAll:   parseFloat(document.getElementById('rateCookingAll')?.value)||5,
+    // legacy fields (kept for backward compat — estimated from combo values)
+    sokal:   0,
+    dopore:  0,
+    ratre:   0,
+    cooking: parseFloat(document.getElementById('rateCookingAll')?.value)||5,
   };
   setData('milRates', rates);
-  addAudit('SETTINGS_CHANGED', `মিল রেট আপডেট — সকাল: ৳${rates.sokal}, দুপুর: ৳${rates.dopore}, রাত: ৳${rates.ratre}, রান্না: ৳${rates.cooking}`, null, null);
+  addAudit('SETTINGS_CHANGED',
+    `মিল রেট (কম্বো) আপডেট — সকাল+দুপুর: ৳${rates.comboSD+rates.cookingSD}/দিন | সকাল+রাত: ৳${rates.comboSR+rates.cookingSR}/দিন | সব: ৳${rates.comboAll+rates.cookingAll}/দিন`,
+    null, null);
   showToast('মিল রেট সেভ হয়েছে ✅', 'success');
 }
 
