@@ -678,6 +678,46 @@ tr:last-child td { border-bottom: none; }
 }
 #mealCutoffWarning.show { display: block; }
 
+/* ===== MEAL PLAN COMBO CARDS (সকাল সবসময় ইনক্লুড, ৩টি ভ্যালিড প্ল্যান) ===== */
+.meal-plan-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.meal-plan-card {
+  flex: 1;
+  min-width: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.meal-plan-icons { font-size: 20px; line-height: 1; }
+.meal-plan-name { font-size: 12.5px; font-weight: 600; }
+.meal-plan-price { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+.meal-plan-card:hover { border-color: var(--primary-light); }
+.meal-plan-card.selected {
+  border-color: var(--primary);
+  background: #f0f7f4;
+}
+.meal-plan-card.selected .meal-plan-name,
+.meal-plan-card.selected .meal-plan-price { color: var(--primary); }
+.meal-plan-card.cutoff-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: var(--danger-light) !important;
+  background: var(--danger-bg) !important;
+}
+.meal-plan-card.cutoff-disabled .meal-plan-name,
+.meal-plan-card.cutoff-disabled .meal-plan-price { color: #991b1b !important; text-decoration: line-through; }
+
 /* ===== BALANCE BAR ===== */
 .balance-bar {
   background: linear-gradient(135deg, var(--primary-dark), var(--primary));
@@ -2724,16 +2764,34 @@ input:checked + .slider:before { transform: translateX(20px); }
         <label class="form-label">মিল নির্বাচন করুন *</label>
         <div id="mealRateInfo" style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:10px;font-size:13px;"></div>
         <div id="mealCutoffWarning">⏰ <strong>আজকের সব মিল শেষ।</strong> আগামীকাল থেকে মিল চালু হবে।</div>
-        <div class="meal-toggle-row">
-          <label class="meal-toggle selected" id="toggleSokal">
-            <input type="checkbox" id="selSokal" checked onchange="onMealToggle(this,'sokal')"> ☀️ সকাল
+        <!-- হিডেন টগল — পুরনো billing/cutoff লজিকের জন্য state রাখা হয়, ব্যবহারকারীকে দেখানো হয় না -->
+        <div style="display:none;">
+          <label class="meal-toggle" id="toggleSokal">
+            <input type="checkbox" id="selSokal" checked>
           </label>
           <label class="meal-toggle" id="toggleDopore">
-            <input type="checkbox" id="selDopore" onchange="onMealToggle(this,'dopore')"> 🌤️ দুপুর
+            <input type="checkbox" id="selDopore">
           </label>
           <label class="meal-toggle" id="toggleRatre">
-            <input type="checkbox" id="selRatre" onchange="onMealToggle(this,'ratre')"> 🌙 রাত
+            <input type="checkbox" id="selRatre">
           </label>
+        </div>
+        <div class="meal-plan-row" id="mealPlanRow">
+          <div class="meal-plan-card" id="planSokalDopore" onclick="selectMealPlan('sokal_dopore')">
+            <div class="meal-plan-icons">☀️🌤️</div>
+            <div class="meal-plan-name">সকাল + দুপুর</div>
+            <div class="meal-plan-price" id="priceSokalDopore"></div>
+          </div>
+          <div class="meal-plan-card" id="planSokalRatre" onclick="selectMealPlan('sokal_ratre')">
+            <div class="meal-plan-icons">☀️🌙</div>
+            <div class="meal-plan-name">সকাল + রাত</div>
+            <div class="meal-plan-price" id="priceSokalRatre"></div>
+          </div>
+          <div class="meal-plan-card selected" id="planAll" onclick="selectMealPlan('all')">
+            <div class="meal-plan-icons">☀️🌤️🌙</div>
+            <div class="meal-plan-name">সকাল + দুপুর + রাত</div>
+            <div class="meal-plan-price" id="priceAll"></div>
+          </div>
         </div>
         <div id="dailyRateCalc" class="mt-2" style="background:var(--primary);color:white;border-radius:8px;padding:10px;font-size:13px;text-align:center;"></div>
       </div>
@@ -4148,6 +4206,22 @@ function applyCutoffForDate() {
     warningEl.classList.add('show');
   }
 
+  // সিলেক্টেড প্ল্যানটি cutoff-এর কারণে অবৈধ হয়ে গেলে — এখনো খোলা থাকা একটি ভ্যালিড প্ল্যানে অটো-সুইচ করো
+  const doporeOut = disabled.includes('dopore');
+  const ratreOut = disabled.includes('ratre');
+  const currentPlan = window._selectedMealPlan || 'all';
+  const planNowInvalid =
+    (currentPlan === 'sokal_dopore' && doporeOut) ||
+    (currentPlan === 'sokal_ratre' && ratreOut) ||
+    (currentPlan === 'all' && (doporeOut || ratreOut));
+
+  if (planNowInvalid && !allDisabled) {
+    const fallback = !doporeOut ? 'sokal_dopore' : (!ratreOut ? 'sokal_ratre' : null);
+    if (fallback) selectMealPlan(fallback);
+  } else {
+    syncMealPlanCards();
+  }
+
   calcDailyRate();
 }
 
@@ -4341,11 +4415,20 @@ function showDiningOnNewModal() {
     startDateGroup.style.display = 'none';
   }
 
-  // সকাল সবসময় selected থাকবে
+  // সকাল সবসময় selected থাকবে — ডিফল্ট প্ল্যান: সকাল+দুপুর+রাত (all)
+  window._selectedMealPlan = 'all';
   const toggleSokal = document.getElementById('toggleSokal');
   const selSokal = document.getElementById('selSokal');
+  const toggleDopore = document.getElementById('toggleDopore');
+  const selDopore = document.getElementById('selDopore');
+  const toggleRatre = document.getElementById('toggleRatre');
+  const selRatre = document.getElementById('selRatre');
   if (toggleSokal) toggleSokal.classList.add('selected');
-  if (selSokal) selSokal.checked = true;
+  if (selSokal) { selSokal.checked = true; selSokal.disabled = false; }
+  if (toggleDopore) toggleDopore.classList.add('selected');
+  if (selDopore) { selDopore.checked = true; selDopore.disabled = false; }
+  if (toggleRatre) toggleRatre.classList.add('selected');
+  if (selRatre) { selRatre.checked = true; selRatre.disabled = false; }
 
   calcDailyRate();
   applyCutoffForDate();
@@ -4425,7 +4508,69 @@ function onMealToggle(checkbox, meal) {
   calcDailyRate();
 }
 
+// ── নতুন কম্বো-প্ল্যান বাটন (সকাল একা নেওয়া যায় না — ৩টি ভ্যালিড প্ল্যান) ──
+// plan: 'sokal_dopore' | 'sokal_ratre' | 'all'
+function selectMealPlan(plan) {
+  const cardId = { sokal_dopore: 'planSokalDopore', sokal_ratre: 'planSokalRatre', all: 'planAll' }[plan];
+  const card = document.getElementById(cardId);
+  if (card && card.classList.contains('cutoff-disabled')) return; // cutoff পার হওয়া প্ল্যান ক্লিক করা যাবে না
+
+  // হিডেন চেকবক্স/টগল স্টেট সেট করো — সকাল সবসময় true
+  const sokalChk = document.getElementById('selSokal');
+  const doporeChk = document.getElementById('selDopore');
+  const ratreChk = document.getElementById('selRatre');
+  sokalChk.checked = true;
+  doporeChk.checked = (plan === 'sokal_dopore' || plan === 'all');
+  ratreChk.checked = (plan === 'sokal_ratre' || plan === 'all');
+
+  document.getElementById('toggleSokal').classList.add('selected');
+  document.getElementById('toggleDopore').classList.toggle('selected', doporeChk.checked);
+  document.getElementById('toggleRatre').classList.toggle('selected', ratreChk.checked);
+
+  window._selectedMealPlan = plan;
+  syncMealPlanCards();
+  calcDailyRate();
+}
+
+// বর্তমান selection + cutoff অনুযায়ী কম্বো-কার্ডের visual state ও দাম আপডেট করে
+function syncMealPlanCards() {
+  const rates = getData('milRates', { sokal:25, dopore:35, ratre:25, cooking:5 });
+  const plan = window._selectedMealPlan || 'all';
+
+  const priceSD = rates.sokal + rates.dopore + rates.cooking;
+  const priceSR = rates.sokal + rates.ratre + rates.cooking;
+  const priceAll = rates.sokal + rates.dopore + rates.ratre + rates.cooking;
+
+  const pEl = id => document.getElementById(id);
+  if (pEl('priceSokalDopore')) pEl('priceSokalDopore').textContent = `৳${priceSD}/দিন`;
+  if (pEl('priceSokalRatre')) pEl('priceSokalRatre').textContent = `৳${priceSR}/দিন`;
+  if (pEl('priceAll')) pEl('priceAll').textContent = `৳${priceAll}/দিন`;
+
+  const cardIds = { sokal_dopore: 'planSokalDopore', sokal_ratre: 'planSokalRatre', all: 'planAll' };
+  Object.entries(cardIds).forEach(([p, id]) => {
+    const card = pEl(id);
+    if (card) card.classList.toggle('selected', p === plan);
+  });
+
+  // cutoff অনুযায়ী কোন কার্ড disable হবে তা ঠিক করো
+  const disabledMeals = getCutoffDisabledMealsForSelectedDate();
+  const isDoporeOut = disabledMeals.includes('dopore');
+  const isRatreOut = disabledMeals.includes('ratre');
+  if (pEl('planSokalDopore')) pEl('planSokalDopore').classList.toggle('cutoff-disabled', isDoporeOut);
+  if (pEl('planSokalRatre')) pEl('planSokalRatre').classList.toggle('cutoff-disabled', isRatreOut);
+  if (pEl('planAll')) pEl('planAll').classList.toggle('cutoff-disabled', isDoporeOut && isRatreOut);
+}
+
+// startDate আজ হলেই cutoff প্রযোজ্য, নাহলে কিছুই disabled না
+function getCutoffDisabledMealsForSelectedDate() {
+  const startDate = document.getElementById('onStartDate') ? document.getElementById('onStartDate').value : '';
+  const today = todayStr();
+  if (!startDate || startDate !== today) return [];
+  return getTimeCutoffDisabledMeals();
+}
+
 function calcDailyRate() {
+  syncMealPlanCards();
   const rates = getData('milRates', { sokal:25, dopore:35, ratre:25, cooking:5 });
 
   const sokalSel = document.getElementById('toggleSokal').classList.contains('selected');
