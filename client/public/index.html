@@ -1645,8 +1645,9 @@ input:checked + .slider:before { transform: translateX(20px); }
       <button class="modal-close" onclick="closeModal('studentListModal')">✕</button>
     </div>
     <div id="studentListModalBody"></div>
-    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;">
-      <button class="btn btn-outline btn-sm" onclick="closeModal('studentListModal')">বন্ধ করুন</button>
+    <div class="modal-footer" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button id="studentListPdfBtn" class="btn btn-primary btn-sm" style="display:none;" onclick="">📄 PDF ডাউনলোড</button>
+      <button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="closeModal('studentListModal')">বন্ধ করুন</button>
     </div>
   </div>
 </div>
@@ -7699,16 +7700,20 @@ function showStudentListModal(type, batchOnly) {
   if (batchOnly) list = list.filter(s => s.batch === batchOnly);
 
   if (type === 'clear') list = list.filter(s => isClearPayment(s));
-  else if (type === 'due') list = list.filter(s => !isClearPayment(s));
-  // type === 'all' হলে কোনো ফিল্টার লাগবে না
+  else if (type === 'due') list = list.filter(s => {
+    const bill = calcTotalBill(s);
+    const dep  = calcStudentTotalDeposited(s);
+    return bill > dep;
+  });
 
   const titleMap = {
     all: '👥 মোট ছাত্র তালিকা',
     clear: '✅ Clear Payment করেছে এমন ছাত্র তালিকা',
     due: '🔴 বকেয়া আছে এমন ছাত্র তালিকা',
   };
+  const modalTitle = `${titleMap[type] || '👥 ছাত্র তালিকা'}${batchOnly ? ' — ব্যাচ ' + batchOnly : ''} (${list.length} জন)`;
   const titleEl = document.getElementById('studentListModalTitle');
-  if (titleEl) titleEl.textContent = `${titleMap[type] || '👥 ছাত্র তালিকা'}${batchOnly ? ' — ব্যাচ ' + batchOnly : ''} (${list.length} জন)`;
+  if (titleEl) titleEl.textContent = modalTitle;
 
   const body = document.getElementById('studentListModalBody');
   if (!body) return;
@@ -7719,7 +7724,7 @@ function showStudentListModal(type, batchOnly) {
     return;
   }
 
-  // Group by batch → hall → room (যেমন উপস্থিতি ক্যালেন্ডারে দেখানো হয়)
+  // Group by batch
   const grouped = {};
   list.forEach(s => {
     const hallKey = s.hall || '(হল নেই)';
@@ -7729,14 +7734,48 @@ function showStudentListModal(type, batchOnly) {
     grouped[s.batch][hallKey][s.room].push(s);
   });
 
+  // Batch-wise totals for summary
+  const batchSummary = {};
+  Object.keys(grouped).forEach(batch => {
+    const batchStudents = Object.values(grouped[batch]).flatMap(h => Object.values(h)).flat();
+    let batchDue = 0, batchBill = 0, batchDeposited = 0;
+    batchStudents.forEach(s => {
+      const bill = calcTotalBill(s);
+      const dep  = calcStudentTotalDeposited(s);
+      batchBill      += bill;
+      batchDeposited += dep;
+      batchDue       += Math.max(0, bill - dep);
+    });
+    batchSummary[batch] = { total: batchStudents.length, bill: batchBill, deposited: batchDeposited, due: batchDue };
+  });
+  const grandDue = Object.values(batchSummary).reduce((s, b) => s + b.due, 0);
+
   let html = '';
+
+  // Grand summary bar (only for 'due' type)
+  if (type === 'due' && list.length > 0) {
+    html += `<div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;">
+      <div style="font-weight:700;color:#991b1b;font-size:14px;">🔴 মোট বকেয়া সারসংক্ষেপ</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;">
+        <span>মোট ছাত্র: <strong>${list.length} জন</strong></span>
+        <span>মোট বিল: <strong style="color:#1d4ed8;">৳${list.reduce((s,x)=>s+calcTotalBill(x),0).toLocaleString('bn-BD')}</strong></span>
+        <span>মোট জমা: <strong style="color:#0f766e;">৳${list.reduce((s,x)=>s+calcStudentTotalDeposited(x),0).toLocaleString('bn-BD')}</strong></span>
+        <span>মোট বকেয়া: <strong style="color:#dc2626;font-size:15px;">৳${grandDue.toLocaleString('bn-BD')}</strong></span>
+      </div>
+    </div>`;
+  }
+
   Object.keys(grouped).sort((a,b)=>parseInt(a)-parseInt(b)).forEach(batch => {
     const bc = getBatchColor(batch);
     const batchStudents = Object.values(grouped[batch]).flatMap(h => Object.values(h)).flat();
+    const bs = batchSummary[batch];
     html += `<div style="margin-bottom:18px;border-radius:10px;overflow:hidden;border:1px solid ${bc.border};">
       <div style="padding:8px 14px;background:${bc.bg};color:${bc.text};font-weight:700;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
         <span>🎓 ব্যাচ ${batch}</span>
-        <span style="background:${bc.text};color:${bc.bg};border-radius:20px;padding:2px 10px;font-size:11px;">${batchStudents.length} জন</span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          ${type === 'due' ? `<span style="font-size:11px;background:#fee2e2;color:#991b1b;border-radius:20px;padding:2px 10px;font-weight:700;">বকেয়া ৳${bs.due.toLocaleString('bn-BD')}</span>` : ''}
+          <span style="background:${bc.text};color:${bc.bg};border-radius:20px;padding:2px 10px;font-size:11px;">${batchStudents.length} জন</span>
+        </div>
       </div>
       <div style="overflow-x:auto;">
         <table style="min-width:560px;font-size:12px;border-collapse:collapse;width:100%;">
@@ -7757,21 +7796,20 @@ function showStudentListModal(type, batchOnly) {
     Object.keys(grouped[batch]).sort().forEach(hall => {
       Object.keys(grouped[batch][hall]).sort().forEach(room => {
         grouped[batch][hall][room].forEach(s => {
-          const due = Math.max(0, calcDue(s));
-          const totalBill = calcTotalBill(s);
-          const deposits = getStudentDeposits(s.id);
-          const isClear = isClearPayment(s);
-          const spent = calcMealCostSoFar(s);
-          const netBal = calcStudentNetBalance(s);
-          let balanceCell;
-          if (netBal === 0) balanceCell = `<span style="font-size:11px;color:#9ca3af;">৳০</span>`;
-          else if (netBal > 0) balanceCell = `<span style="font-weight:700;color:#7c3aed;">৳${netBal}</span>`;
-          else balanceCell = `<span style="font-weight:700;color:#dc2626;">৳${netBal}</span>`;
-
-          const waNum = s.wa || s.whatsapp || s.phone || '';
+          const totalBill     = calcTotalBill(s);
+          const deposited     = calcStudentTotalDeposited(s);
+          const due           = Math.max(0, totalBill - deposited);
+          const isClear       = deposited >= totalBill && totalBill > 0;
+          const netBal        = calcStudentNetBalance(s);
+          const balanceCell   = netBal === 0
+            ? `<span style="font-size:11px;color:#9ca3af;">৳০</span>`
+            : netBal > 0
+              ? `<span style="font-weight:700;color:#7c3aed;">৳${netBal}</span>`
+              : `<span style="font-weight:700;color:#dc2626;">৳${netBal}</span>`;
+          const waNum   = s.wa || s.whatsapp || s.phone || '';
           const waClean = waNum.replace(/[^0-9+]/g, '');
-          const waHref = waClean ? 'https://wa.me/' + (waClean.startsWith('+') ? waClean.slice(1) : '88' + waClean.replace(/^0/, '')) : '';
-          const waCell = waNum
+          const waHref  = waClean ? 'https://wa.me/' + (waClean.startsWith('+') ? waClean.slice(1) : '88' + waClean.replace(/^0/, '')) : '';
+          const waCell  = waNum
             ? `<a href="${waHref}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;color:#075e54;font-family:monospace;font-weight:600;font-size:11px;text-decoration:none;background:#e7fbe6;border-radius:6px;padding:2px 7px;white-space:nowrap;">💬 ${waNum}</a>`
             : `<span style="color:#9ca3af;font-size:11px;">—</span>`;
           html += `<tr>
@@ -7779,22 +7817,115 @@ function showStudentListModal(type, batchOnly) {
             <td style="padding:6px 10px;white-space:nowrap;border-bottom:1px solid var(--border);color:var(--text-muted);">🏠 ${hall} / 🚪 ${room}</td>
             <td style="padding:6px 10px;white-space:nowrap;border-bottom:1px solid var(--border);">${waCell}</td>
             <td style="padding:6px 10px;font-weight:700;color:#1d4ed8;white-space:nowrap;border-bottom:1px solid var(--border);">৳${totalBill}</td>
-            <td style="padding:6px 10px;font-weight:700;color:#0f766e;white-space:nowrap;border-bottom:1px solid var(--border);">৳${deposits.total}</td>
+            <td style="padding:6px 10px;font-weight:700;color:#0f766e;white-space:nowrap;border-bottom:1px solid var(--border);">৳${deposited}</td>
             <td style="padding:6px 10px;white-space:nowrap;border-bottom:1px solid var(--border);">${balanceCell}</td>
-            <td style="padding:6px 10px;font-weight:700;color:${due>0?'var(--danger)':'#16a34a'};white-space:nowrap;border-bottom:1px solid var(--border);">${due > 0 ? '৳'+due : '✅ ০'}</td>
+            <td style="padding:6px 10px;font-weight:800;color:${due>0?'#dc2626':'#16a34a'};white-space:nowrap;border-bottom:1px solid var(--border);">${due > 0 ? '৳'+due : '✅ ০'}</td>
             <td style="padding:6px 10px;white-space:nowrap;border-bottom:1px solid var(--border);">
-              ${isClear ? '<span style="background:#16a34a;color:white;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;">✅ Clear</span>' : '<span style="background:var(--danger-bg);color:#991b1b;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;">🔴 বকেয়া</span>'}
+              ${isClear
+                ? '<span style="background:#16a34a;color:white;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;">✅ Clear</span>'
+                : '<span style="background:#fee2e2;color:#991b1b;border-radius:20px;padding:2px 9px;font-size:10px;font-weight:700;">🔴 বকেয়া</span>'}
             </td>
           </tr>`;
         });
       });
     });
-
     html += '</tbody></table></div></div>';
   });
 
   body.innerHTML = html;
+
+  // PDF button
+  const pdfBtn = document.getElementById('studentListPdfBtn');
+  if (pdfBtn) {
+    pdfBtn.style.display = '';
+    pdfBtn.onclick = () => printStudentListPDF(type, batchOnly, modalTitle, list);
+  }
+
   openModal('studentListModal');
+}
+
+function printStudentListPDF(type, batchOnly, title, list) {
+  const grouped = {};
+  list.forEach(s => {
+    const hallKey = s.hall || '(হল নেই)';
+    if (!grouped[s.batch]) grouped[s.batch] = {};
+    if (!grouped[s.batch][hallKey]) grouped[s.batch][hallKey] = {};
+    if (!grouped[s.batch][hallKey][s.room]) grouped[s.batch][hallKey][s.room] = [];
+    grouped[s.batch][hallKey][s.room].push(s);
+  });
+
+  const grandDue   = list.reduce((s, x) => s + Math.max(0, calcTotalBill(x) - calcStudentTotalDeposited(x)), 0);
+  const grandBill  = list.reduce((s, x) => s + calcTotalBill(x), 0);
+  const grandDepo  = list.reduce((s, x) => s + calcStudentTotalDeposited(x), 0);
+
+  let rows = '';
+  let serial = 1;
+  Object.keys(grouped).sort((a,b)=>parseInt(a)-parseInt(b)).forEach(batch => {
+    const bStudents = Object.values(grouped[batch]).flatMap(h => Object.values(h)).flat();
+    const bDue  = bStudents.reduce((s,x)=>s+Math.max(0,calcTotalBill(x)-calcStudentTotalDeposited(x)),0);
+    const bBill = bStudents.reduce((s,x)=>s+calcTotalBill(x),0);
+    const bDepo = bStudents.reduce((s,x)=>s+calcStudentTotalDeposited(x),0);
+    rows += `<tr style="background:#e8f5e9;font-weight:700;"><td colspan="7" style="padding:7px 10px;color:#1b5e20;font-size:13px;">🎓 ব্যাচ ${batch} — ${bStudents.length} জন &nbsp;|&nbsp; বিল: ৳${bBill} &nbsp;|&nbsp; জমা: ৳${bDepo} &nbsp;|&nbsp; বকেয়া: ৳${bDue}</td></tr>`;
+    Object.keys(grouped[batch]).sort().forEach(hall => {
+      Object.keys(grouped[batch][hall]).sort().forEach(room => {
+        grouped[batch][hall][room].forEach(s => {
+          const bill  = calcTotalBill(s);
+          const depo  = calcStudentTotalDeposited(s);
+          const due   = Math.max(0, bill - depo);
+          rows += `<tr>
+            <td style="padding:5px 8px;text-align:center;">${serial++}</td>
+            <td style="padding:5px 8px;font-weight:600;">${s.name}</td>
+            <td style="padding:5px 8px;">${hall} / ${room}</td>
+            <td style="padding:5px 8px;">${s.wa||s.phone||'—'}</td>
+            <td style="padding:5px 8px;text-align:right;color:#1d4ed8;font-weight:700;">৳${bill}</td>
+            <td style="padding:5px 8px;text-align:right;color:#0f766e;font-weight:700;">৳${depo}</td>
+            <td style="padding:5px 8px;text-align:right;font-weight:800;color:${due>0?'#dc2626':'#16a34a'};">${due>0?'৳'+due:'✅'}</td>
+          </tr>`;
+        });
+      });
+    });
+  });
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>${title}</title>
+  <style>
+    body { font-family: 'Noto Sans Bengali', Arial, sans-serif; font-size: 12px; color: #1a1a1a; margin: 20px; }
+    h2 { font-size: 16px; color: #14532d; margin-bottom: 4px; }
+    .meta { font-size: 11px; color: #6b7280; margin-bottom: 12px; }
+    .summary { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; display: flex; gap: 20px; flex-wrap: wrap; }
+    .summary span strong { color: #dc2626; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th { background: #14532d; color: white; padding: 7px 8px; text-align: left; }
+    td { border-bottom: 1px solid #e5e7eb; padding: 5px 8px; vertical-align: middle; }
+    tr:nth-child(even) { background: #f9fafb; }
+    @media print { button { display: none; } body { margin: 10px; } }
+  </style></head><body>
+  <h2>${title}</h2>
+  <div class="meta">তারিখ: ${new Date().toLocaleDateString('bn-BD', {year:'numeric',month:'long',day:'numeric'})}</div>
+  ${type==='due'?`<div class="summary">
+    <span>মোট ছাত্র: <strong style="color:#1d4ed8;">${list.length} জন</strong></span>
+    <span>মোট বিল: <strong style="color:#1d4ed8;">৳${grandBill}</strong></span>
+    <span>মোট জমা: <strong style="color:#0f766e;">৳${grandDepo}</strong></span>
+    <span>মোট বকেয়া: <strong>৳${grandDue}</strong></span>
+  </div>`:''}
+  <table>
+    <thead><tr>
+      <th style="width:35px;">#</th><th>নাম</th><th>হল / রুম</th><th>ফোন</th>
+      <th style="text-align:right;">মোট বিল</th><th style="text-align:right;">জমা</th><th style="text-align:right;">বকেয়া</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr style="background:#e8f5e9;font-weight:700;">
+      <td colspan="4" style="padding:7px 8px;color:#14532d;">সর্বমোট</td>
+      <td style="text-align:right;color:#1d4ed8;padding:7px 8px;">৳${grandBill}</td>
+      <td style="text-align:right;color:#0f766e;padding:7px 8px;">৳${grandDepo}</td>
+      <td style="text-align:right;color:#dc2626;font-size:13px;padding:7px 8px;">৳${grandDue}</td>
+    </tr></tfoot>
+  </table>
+  <div style="margin-top:20px;text-align:right;font-size:10px;color:#9ca3af;">Hall Dining Management System</div>
+  <script>window.onload=()=>window.print();<\/script>
+  </body></html>`);
+  win.document.close();
 }
 
 function clearAttendanceFilters() {
