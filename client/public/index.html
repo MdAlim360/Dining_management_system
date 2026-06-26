@@ -8172,11 +8172,11 @@ function renderAttendanceCal() {
       html += `<div style="border-top:1px solid ${bc.border}44;">
         <div style="padding:5px 14px;background:${bc.bg}55;font-size:12px;font-weight:700;color:${bc.text};border-bottom:1px solid ${bc.border}44;">🏠 ${hall}</div>
         <div style="overflow-x:auto;padding:0 8px 8px;">
-          <table style="min-width:${Math.max(900, datesForHeader.length * 30 + 620)}px;font-size:11px;border-collapse:collapse;width:100%;table-layout:fixed;">
+          <table style="min-width:${Math.max(1000, datesForHeader.length * 38 + 620)}px;font-size:11px;border-collapse:collapse;width:100%;table-layout:fixed;">
             <thead>
               <tr style="position:sticky;top:0;z-index:2;">
                 <th style="background:var(--primary);color:white;padding:6px 10px;white-space:nowrap;width:130px;position:sticky;left:0;z-index:3;">নাম</th>
-                ${datesForHeader.map(d => `<th style="background:var(--primary);color:white;padding:4px 3px;text-align:center;width:30px;">${new Date(d+'T00:00:00').getDate()}</th>`).join('')}
+                ${datesForHeader.map(d => `<th style="background:var(--primary);color:white;padding:4px 2px;text-align:center;width:38px;min-width:38px;">${new Date(d+'T00:00:00').getDate()}</th>`).join('')}
                 <th style="background:#1d4ed8;color:white;padding:4px 6px;white-space:nowrap;min-width:75px;">মোট বিল</th>
                 <th style="background:#0f766e;color:white;padding:4px 6px;white-space:nowrap;min-width:85px;">জমা</th>
                 <th style="background:#7c3aed;color:white;padding:4px 6px;white-space:nowrap;min-width:75px;">💰 ব্যালেন্স</th>
@@ -8292,16 +8292,24 @@ function renderAttendanceCal() {
 
               let guestBadge = '';
               if (hasGuest) {
+                const approvedGuests = dayGuestMeals.filter(g => g.status === 'approved' || !g.status);
+                const pendingGuests  = dayGuestMeals.filter(g => g.status === 'pending');
                 const allGuestMealSets = dayGuestMeals.map(g => {
                   const gm = (g.meals || []);
-                  const icons = gm.map(m => mealEmoji[m] || m).join('');
                   const names = gm.map(m => mealName[m] || m).join('/');
-                  return `${g.guestName||'গেস্ট'}(${names})`;
+                  const statusTag = g.status === 'pending' ? ' ⏳' : '';
+                  return `${g.guestName||'গেস্ট'}(${names})${statusTag}`;
                 });
-                // unique meal icons across all guests for this date
-                const allGuestMeals2 = [...new Set(dayGuestMeals.flatMap(g => g.meals || []))];
-                const guestIcons = allGuestMeals2.map(m => mealEmoji[m] || m).join('');
-                guestBadge = `<div style="font-size:9px;font-weight:700;color:#0369a1;background:#e0f2fe;border-radius:3px;padding:1px 3px;margin-top:1px;line-height:1.5;white-space:nowrap;" title="গেস্ট মিল: ${allGuestMealSets.join('; ')}">👤${guestIcons}</div>`;
+                if (approvedGuests.length > 0) {
+                  const allApprovedMeals = [...new Set(approvedGuests.flatMap(g => g.meals || []))];
+                  const guestIcons = allApprovedMeals.map(m => mealEmoji[m] || m).join('');
+                  guestBadge += `<div style="font-size:9px;font-weight:700;color:#0369a1;background:#e0f2fe;border-radius:3px;padding:1px 3px;margin-top:1px;line-height:1.5;white-space:nowrap;" title="অনুমোদিত গেস্ট মিল: ${allGuestMealSets.join('; ')}">👤${guestIcons}</div>`;
+                }
+                if (pendingGuests.length > 0) {
+                  const allPendingMeals = [...new Set(pendingGuests.flatMap(g => g.meals || []))];
+                  const pendingIcons = allPendingMeals.map(m => mealEmoji[m] || m).join('');
+                  guestBadge += `<div style="font-size:9px;font-weight:700;color:#92400e;background:#fef3c7;border-radius:3px;padding:1px 3px;margin-top:1px;line-height:1.5;white-space:nowrap;" title="অপেক্ষমাণ গেস্ট মিল: ${pendingGuests.map(g=>g.guestName||'গেস্ট').join(', ')}">⏳${pendingIcons}</div>`;
+                }
               }
 
               const extraBadges = tempBadge + guestBadge;
@@ -8338,7 +8346,8 @@ function renderAttendanceCal() {
                 return `<td ${cellOnclick}background:var(--success-bg);${cellBase}font-weight:900;color:#166534;font-size:14px;">✓</td>`;
               }
               if (offMealsForStudent.length === 0 && (hasTempOn || hasGuest)) {
-                return `<td ${cellOnclick}background:var(--success-bg);${cellBase}font-weight:900;color:#166534;font-size:14px;">${wrap('✓'+extraBadges)}</td>`;
+                const checkDiv = `<div style="font-weight:900;color:#166534;font-size:14px;line-height:1;">✓</div>`;
+                return `<td ${cellOnclick}background:var(--success-bg);${cellBase}">${wrap(checkDiv+extraBadges)}</td>`;
               }
               return `<td ${cellOnclick}background:var(--danger-bg);${cellBase}">${wrap(mealStatusRows+extraBadges)}</td>`;
             }).join('')}
