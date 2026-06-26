@@ -1826,10 +1826,11 @@ input:checked + .slider:before { transform: translateX(20px); }
             <div style="font-size:12px;opacity:0.8;" id="dashGreeting">আজকের সারসংক্ষেপ</div>
           </div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;" onclick="renderAdminDashboard()">🔄 রিফ্রেশ</button>
+            <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;" onclick="adminRefreshData()">🔄 রিফ্রেশ</button>
             <button class="btn btn-sm" id="lockDiningBtn" onclick="toggleDiningLock()" style="font-weight:700;"></button>
             <button class="btn btn-sm" id="lockCommentBtn" onclick="toggleCommentLock()" style="font-weight:700;"></button>
             <button class="btn btn-sm" id="lockFeedbackBtn" onclick="toggleFeedbackLock()" style="font-weight:700;"></button>
+            <button class="btn btn-sm" style="background:rgba(239,68,68,0.25);border:1px solid rgba(239,68,68,0.5);color:white;" onclick="adminLogout()">🚪 লগআউট</button>
           </div>
         </div>
 
@@ -3390,7 +3391,16 @@ async function _persistToServer(key, val) {
             await _apiFetch('/api/payments', 'POST', p);
           } else {
             const srv = serverPays.find(x => x.id === p.id);
-            if (srv && srv.status !== p.status) {
+            // Fix: compare all important fields, not just status
+            const changed = srv && (
+              srv.status !== p.status ||
+              srv.amount !== p.amount ||
+              srv.netAmount !== p.netAmount ||
+              srv.note !== p.note ||
+              srv.approvedAt !== p.approvedAt ||
+              srv.txnId !== p.txnId
+            );
+            if (changed) {
               await _apiFetch('/api/payments/' + p.id, 'PUT', p);
             }
           }
@@ -3500,10 +3510,21 @@ async function _persistToServer(key, val) {
         const serverItems = await _apiFetch('/api/guestmeals') || [];
         const serverIds = new Set(serverItems.map(g=>g.id));
         for (const g of (val||[])) {
-          if (!serverIds.has(g.id)) await _apiFetch('/api/guestmeals','POST',g);
-          else {
+          if (!serverIds.has(g.id)) {
+            await _apiFetch('/api/guestmeals','POST',g);
+          } else {
             const srv = serverItems.find(x=>x.id===g.id);
-            if (srv && srv.status !== g.status) await _apiFetch('/api/guestmeals/'+g.id,'PUT',g);
+            // Fix: compare all important fields, not just status
+            const changed = srv && (
+              srv.status !== g.status ||
+              srv.guestName !== g.guestName ||
+              srv.total !== g.total ||
+              srv.perDay !== g.perDay ||
+              JSON.stringify(srv.dates) !== JSON.stringify(g.dates) ||
+              JSON.stringify(srv.meals) !== JSON.stringify(g.meals) ||
+              JSON.stringify(srv.customCharges) !== JSON.stringify(g.customCharges)
+            );
+            if (changed) await _apiFetch('/api/guestmeals/'+g.id,'PUT',g);
           }
         }
         const newIds = new Set((val||[]).map(g=>g.id));
@@ -3518,10 +3539,18 @@ async function _persistToServer(key, val) {
         const serverItems = await _apiFetch('/api/bazar') || [];
         const serverIds = new Set(serverItems.map(b=>b.id));
         for (const b of (val||[])) {
-          if (!serverIds.has(b.id)) await _apiFetch('/api/bazar','POST',b);
-          else {
+          if (!serverIds.has(b.id)) {
+            await _apiFetch('/api/bazar','POST',b);
+          } else {
             const srv = serverItems.find(x=>x.id===b.id);
-            if (srv && JSON.stringify(srv)!==JSON.stringify(b)) await _apiFetch('/api/bazar/'+b.id,'PUT',b);
+            // Fix: compare only app fields (not MongoDB meta fields like _id, __v)
+            const changed = srv && (
+              srv.cost !== b.cost ||
+              srv.note !== b.note ||
+              srv.date !== b.date ||
+              JSON.stringify(srv.items) !== JSON.stringify(b.items)
+            );
+            if (changed) await _apiFetch('/api/bazar/'+b.id,'PUT',b);
           }
         }
         const newIds = new Set((val||[]).map(b=>b.id));
@@ -3682,6 +3711,15 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Re-init currentStudent from sessionStorage
   currentStudent = getData('currentStudent', null);
   updateNavForStudent();
+
+  // Re-init admin session from sessionStorage (so refresh doesn't log out admin)
+  if (currentAdminSession) {
+    document.getElementById('navAdmin').textContent = '⚙️ Admin ✓';
+    showPage('admin');
+    renderAdminDashboard();
+    return;
+  }
+
   renderCommunity();
 });
 
@@ -6584,6 +6622,12 @@ function renderMsgList() {
 // ==================== MULTI-ADMIN SESSION ====================
 let currentAdminSession = null; // { user, isSuperAdmin }
 
+// Restore admin session from sessionStorage on refresh
+try {
+  const saved = sessionStorage.getItem('adminSession');
+  if (saved) currentAdminSession = JSON.parse(saved);
+} catch {}
+
 function adminLogin() {
   const u = document.getElementById('adminUser').value.trim();
   const p = document.getElementById('adminPass').value.trim();
@@ -6592,6 +6636,7 @@ function adminLogin() {
   // Check super admin
   if (u === creds.user && p === creds.pass) {
     currentAdminSession = { user: u, isSuperAdmin: true };
+    try { sessionStorage.setItem('adminSession', JSON.stringify(currentAdminSession)); } catch {}
     showPage('admin');
     document.getElementById('navAdmin').textContent = '⚙️ Admin ✓';
     showToast('সুপার অ্যাডমিন লগইন সফল 🎉', 'success');
@@ -6604,6 +6649,7 @@ function adminLogin() {
   const found = subAdmins.find(a => a.user === u && a.pass === p);
   if (found) {
     currentAdminSession = { user: u, isSuperAdmin: false, name: found.name || u };
+    try { sessionStorage.setItem('adminSession', JSON.stringify(currentAdminSession)); } catch {}
     showPage('admin');
     document.getElementById('navAdmin').textContent = '⚙️ Admin ✓';
     showToast('অ্যাডমিন লগইন সফল 🎉', 'success');
@@ -6616,6 +6662,25 @@ function adminLogin() {
 
 function isSuperAdmin() {
   return currentAdminSession && currentAdminSession.isSuperAdmin;
+}
+
+async function adminRefreshData() {
+  showToast('ডেটা লোড হচ্ছে...', 'info');
+  try {
+    await _loadAllFromServer();
+    renderAdminDashboard();
+    showToast('ডেটা আপডেট হয়েছে ✅', 'success');
+  } catch(e) {
+    showToast('ডেটা লোড করতে সমস্যা হয়েছে', 'error');
+  }
+}
+
+function adminLogout() {
+  currentAdminSession = null;
+  try { sessionStorage.removeItem('adminSession'); } catch {}
+  document.getElementById('navAdmin').textContent = '⚙️ Admin';
+  showPage('community');
+  showToast('অ্যাডমিন লগআউট সফল', 'info');
 }
 
 // ==================== ADMIN TABS ====================
@@ -10231,7 +10296,7 @@ function renderAdminGuestList() {
 }
 
 // অনুমোদন: ছাত্রের ব্যালেন্স থেকে টাকা কাটা হবে এবং রেকর্ড 'approved' হবে
-function approveGuestMeal(id) {
+async function approveGuestMeal(id) {
   const guestMeals = getData('guestMeals', []);
   const g = guestMeals.find(x => x.id === id);
   if (!g) return;
@@ -10243,28 +10308,42 @@ function approveGuestMeal(id) {
   }
   // গেস্ট মিলের জন্য student.balance থেকে কাটা হয় (জমার accounting)
   s.balance = (s.balance || 0) - g.total;
-  setData('students', students);
   g.status = 'approved';
   g.approvedAt = new Date().toLocaleString('bn-BD');
-  setData('guestMeals', guestMeals);
-  addAudit('GUEST_MEAL_APPROVED', `গেস্ট: ${g.guestName}, মিল: ${(g.meals||[]).join('/')}, মোট: ৳${g.total}`, g.studentId, s ? s.name : '');
-  renderAdminGuestList();
-  renderAdminDashboard();
-  renderHeroStats();
-  showToast(`${g.guestName} এর গেস্ট মিল অনুমোদিত হয়েছে। ৳${g.total} ${s.name}-এর ব্যালেন্স থেকে কাটা হয়েছে ✅`, 'success');
+  // Update cache
+  _cache['students'] = students;
+  _cache['guestMeals'] = guestMeals;
+  try {
+    await _apiFetch('/api/students/' + s.id, 'PUT', s);
+    await _apiFetch('/api/guestmeals/' + g.id, 'PUT', g);
+    addAudit('GUEST_MEAL_APPROVED', `গেস্ট: ${g.guestName}, মিল: ${(g.meals||[]).join('/')}, মোট: ৳${g.total}`, g.studentId, s ? s.name : '');
+    renderAdminGuestList();
+    renderAdminDashboard();
+    renderHeroStats();
+    showToast(`${g.guestName} এর গেস্ট মিল অনুমোদিত হয়েছে। ৳${g.total} ${s.name}-এর ব্যালেন্স থেকে কাটা হয়েছে ✅`, 'success');
+  } catch(e) {
+    showToast('অনুমোদন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।', 'error');
+    console.error('Approve guest meal error:', e);
+  }
 }
 
 // প্রত্যাখ্যান: কোনো টাকা কাটা হবে না
-function rejectGuestMeal(id) {
+async function rejectGuestMeal(id) {
   const guestMeals = getData('guestMeals', []);
   const g = guestMeals.find(x => x.id === id);
   if (!g) return;
   g.status = 'rejected';
   g.rejectedAt = new Date().toLocaleString('bn-BD');
-  setData('guestMeals', guestMeals);
-  addAudit('GUEST_MEAL_REJECTED', `গেস্ট: ${g.guestName}, মিল: ${(g.meals||[]).join('/')}`, g.studentId, g.studentName || '');
-  renderAdminGuestList();
-  showToast(`${g.guestName} এর গেস্ট মিল অনুরোধ প্রত্যাখ্যাত হয়েছে`, 'info');
+  _cache['guestMeals'] = guestMeals;
+  try {
+    await _apiFetch('/api/guestmeals/' + g.id, 'PUT', g);
+    addAudit('GUEST_MEAL_REJECTED', `গেস্ট: ${g.guestName}, মিল: ${(g.meals||[]).join('/')}`, g.studentId, g.studentName || '');
+    renderAdminGuestList();
+    showToast(`${g.guestName} এর গেস্ট মিল অনুরোধ প্রত্যাখ্যাত হয়েছে`, 'info');
+  } catch(e) {
+    showToast('প্রত্যাখ্যান করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।', 'error');
+    console.error('Reject guest meal error:', e);
+  }
 }
 
 // ==================== ADMIN GUEST MEAL ====================
@@ -10354,7 +10433,7 @@ function adminGuestUpdateCost() {
   }
 }
 
-function adminSubmitGuestMeal() {
+async function adminSubmitGuestMeal() {
   const studentId = parseInt(document.getElementById('adminGuestSelectedStudentId').value);
   if (!studentId) return showToast('প্রথমে একজন ছাত্র নির্বাচন করুন', 'error');
   const guestName = document.getElementById('adminGuestName').value.trim();
@@ -10383,10 +10462,8 @@ function adminSubmitGuestMeal() {
     return showToast(`ছাত্রের ব্যালেন্স অপর্যাপ্ত। প্রয়োজন ৳${total}, বর্তমান নেট ব্যালেন্স ৳${calcStudentNetBalance(s)}`, 'error');
   }
   s.balance = (s.balance || 0) - total;
-  setData('students', students);
 
-  const guestMeals = getData('guestMeals', []);
-  guestMeals.push({
+  const newGuestMeal = {
     id: Date.now(),
     studentId,
     studentName: s.name,
@@ -10399,23 +10476,36 @@ function adminSubmitGuestMeal() {
     createdAt: new Date().toLocaleString('bn-BD'),
     approvedAt: new Date().toLocaleString('bn-BD'),
     addedByAdmin: true,
-  });
-  setData('guestMeals', guestMeals);
+  };
 
-  // Reset form
-  document.getElementById('adminGuestName').value = '';
-  document.getElementById('adminGuestStudentSearch').value = '';
-  document.getElementById('adminGuestSelectedStudentId').value = '';
-  document.getElementById('adminGuestStudentSelected').style.display = 'none';
-  document.getElementById('adminGuestStudentResults').innerHTML = '';
-  document.getElementById('adminGuestDatePicker').innerHTML = '';
-  document.getElementById('adminGuestCostPreview').style.display = 'none';
-  ['adminGuestSokal','adminGuestDopore','adminGuestRatre'].forEach(id => document.getElementById(id)?.classList.remove('selected'));
-  document.querySelectorAll('#adminGuestComboRow .guest-combo-btn').forEach(b => b.classList.remove('active'));
+  try {
+    // Direct API calls — reliable save
+    await _apiFetch('/api/students/' + s.id, 'PUT', s);
+    const savedGuest = await _apiFetch('/api/guestmeals', 'POST', newGuestMeal);
+    // Update cache
+    _cache['students'] = students;
+    const guestMeals = getData('guestMeals', []);
+    guestMeals.push(savedGuest || newGuestMeal);
+    _cache['guestMeals'] = guestMeals;
 
-  renderAdminGuestList();
-  renderAdminDashboard();
-  showToast(`${s.name}-এর গেস্ট মিল যোগ হয়েছে। ৳${total} ব্যালেন্স থেকে কাটা হয়েছে। ✅`, 'success');
+    // Reset form
+    document.getElementById('adminGuestName').value = '';
+    document.getElementById('adminGuestStudentSearch').value = '';
+    document.getElementById('adminGuestSelectedStudentId').value = '';
+    document.getElementById('adminGuestStudentSelected').style.display = 'none';
+    document.getElementById('adminGuestStudentResults').innerHTML = '';
+    document.getElementById('adminGuestDatePicker').innerHTML = '';
+    document.getElementById('adminGuestCostPreview').style.display = 'none';
+    ['adminGuestSokal','adminGuestDopore','adminGuestRatre'].forEach(id => document.getElementById(id)?.classList.remove('selected'));
+    document.querySelectorAll('#adminGuestComboRow .guest-combo-btn').forEach(b => b.classList.remove('active'));
+
+    renderAdminGuestList();
+    renderAdminDashboard();
+    showToast(`${s.name}-এর গেস্ট মিল যোগ হয়েছে। ৳${total} ব্যালেন্স থেকে কাটা হয়েছে। ✅`, 'success');
+  } catch(e) {
+    showToast('সেভ করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।', 'error');
+    console.error('Submit guest meal error:', e);
+  }
 }
 
 function adminEditGuestMeal(guestMealId) {
@@ -10536,7 +10626,7 @@ function editGuestUpdateCost() {
   }
 }
 
-function adminSaveGuestMealEdit() {
+async function adminSaveGuestMealEdit() {
   const guestMealId = parseInt(document.getElementById('editGuestMealId').value);
   const guestName = document.getElementById('editGuestName').value.trim();
   if (!guestName) return showToast('গেস্টের নাম লিখুন', 'error');
@@ -10591,6 +10681,8 @@ function adminSaveGuestMealEdit() {
   const g = guestMeals[idx];
   const diff = adjustedTotal - g.total;
 
+  // Student balance update
+  let updatedStudent = null;
   if (diff !== 0) {
     const students = getData('students', []);
     const s = students.find(x => x.id === g.studentId);
@@ -10599,17 +10691,32 @@ function adminSaveGuestMealEdit() {
         return showToast(`ছাত্রের ব্যালেন্স অপর্যাপ্ত। অতিরিক্ত প্রয়োজন ৳${diff}, বর্তমান নেট ব্যালেন্স ৳${calcStudentNetBalance(s)}`, 'error');
       }
       s.balance = (s.balance || 0) - diff;
-      setData('students', students);
+      updatedStudent = s;
+      // Update cache
+      _cache['students'] = students;
     }
   }
 
-  guestMeals[idx] = { ...g, guestName, dates: selectedDates, meals, perDay, total: adjustedTotal, customCharges: Object.keys(customCharges).length ? customCharges : undefined, editedAt: new Date().toLocaleString('bn-BD') };
-  setData('guestMeals', guestMeals);
-  closeModal('adminGuestEditModal');
-  renderAdminGuestList();
-  renderAdminDashboard();
-  const msg = diff > 0 ? `আপডেট হয়েছে। অতিরিক্ত ৳${diff} কাটা হয়েছে।` : diff < 0 ? `আপডেট হয়েছে। ৳${Math.abs(diff)} ফেরত দেওয়া হয়েছে।` : 'আপডেট হয়েছে।';
-  showToast(msg + ' ✅', 'success');
+  const updatedGuestMeal = { ...g, guestName, dates: selectedDates, meals, perDay, total: adjustedTotal, customCharges: Object.keys(customCharges).length ? customCharges : undefined, editedAt: new Date().toLocaleString('bn-BD') };
+  guestMeals[idx] = updatedGuestMeal;
+  // Update cache
+  _cache['guestMeals'] = guestMeals;
+
+  try {
+    // Directly call API — no reliance on setData sync logic
+    await _apiFetch('/api/guestmeals/' + guestMealId, 'PUT', updatedGuestMeal);
+    if (updatedStudent) {
+      await _apiFetch('/api/students/' + updatedStudent.id, 'PUT', updatedStudent);
+    }
+    closeModal('adminGuestEditModal');
+    renderAdminGuestList();
+    renderAdminDashboard();
+    const msg = diff > 0 ? `আপডেট হয়েছে। অতিরিক্ত ৳${diff} কাটা হয়েছে।` : diff < 0 ? `আপডেট হয়েছে। ৳${Math.abs(diff)} ফেরত দেওয়া হয়েছে।` : 'আপডেট হয়েছে।';
+    showToast(msg + ' ✅', 'success');
+  } catch(e) {
+    showToast('সেভ করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।', 'error');
+    console.error('Guest meal edit save error:', e);
+  }
 }
 
 function renderAdminFeedback() {
