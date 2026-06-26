@@ -8311,7 +8311,7 @@ function renderAttendanceCal() {
               }
 
               const extraBadges = (tempBadge || guestBadge)
-                ? `<div style="display:flex;flex-wrap:wrap;gap:1px;justify-content:center;margin-top:1px;">${tempBadge}${guestBadge}</div>`
+                ? `<div style="display:flex;flex-wrap:wrap;gap:1px;justify-content:center;margin-top:1px;max-width:36px;overflow:hidden;">${tempBadge}${guestBadge}</div>`
                 : '';
 
               const pastTitle = [
@@ -8321,10 +8321,10 @@ function renderAttendanceCal() {
                 hasGuest ? `গেস্ট মিল: ${dayGuestMeals.map(g=>g.guestName||'গেস্ট').join(', ')}` : '',
               ].filter(Boolean).join(' | ') || 'ক্লিক করে চালু/বন্ধ করুন';
 
-              const cellOnclick = `onclick="adminToggleMealOff(${s.id}, '${d}')" title="${pastTitle}" style="cursor:pointer;vertical-align:top;`;
+              const cellOnclick = `onclick="adminToggleMealOff(${s.id}, '${d}')" title="${pastTitle}" style="cursor:pointer;vertical-align:middle;overflow:hidden;`;
 
               const cellBase = `text-align:center;padding:3px 2px;border-bottom:1px solid var(--border);`;
-              const wrap = (inner) => `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">${inner}</div>`;
+              const wrap = (inner) => `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;overflow:hidden;">${inner}</div>`;
 
               if (isFutureDate) {
                 if (dayOffs.length === 0 && !hasTempOn && !hasGuest) {
