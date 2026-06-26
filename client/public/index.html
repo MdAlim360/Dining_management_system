@@ -8500,19 +8500,19 @@ function renderCookingChargeTable() {
         <span style="font-size:12px;">মোট কুকিং চার্জ: ৳${bTotalCC}</span>
       </div>
       <div class="table-wrap">
-        <table><thead><tr><th>নাম</th><th>হল</th><th>রুম</th><th>চালু দিন</th><th>কুকিং চার্জ <span style="font-size:10px;font-weight:400;">(≤৭দিন: দিন×৳৫ | ৮-১৫দিন: ৳৭৫)</span></th></tr></thead><tbody>`;
+        <table style="table-layout:fixed;"><thead><tr><th style="width:35%;">নাম</th><th style="width:20%;">হল</th><th style="width:10%;text-align:center;">রুম</th><th style="width:15%;text-align:center;">চালু দিন</th><th style="width:20%;text-align:center;">কুকিং চার্জ <span style="font-size:10px;font-weight:400;white-space:normal;">(≤৭দিন: দিন×৳৫ | ৮-১৫দিন: ৳৭৫)</span></th></tr></thead><tbody>`;
 
     Object.keys(grouped[batch]).sort().forEach(hall => {
       Object.keys(grouped[batch][hall]).sort().forEach(room => {
         html += `<tr style="background:#f0fdf4;"><td colspan="5" style="font-weight:700;font-size:11px;color:#166534;padding:5px 10px;">🏠 ${hall} — 🚪 রুম ${room} (${grouped[batch][hall][room].length} জন)</td></tr>`;
         grouped[batch][hall][room].forEach(s => {
           const tier = s.activeDays === 0 ? '—' : s.activeDays <= 7 ? `${s.activeDays}×৳5` : `flat ৳75`;
-          html += `<tr><td>${s.name}</td><td>${hall}</td><td>${room}</td><td style="text-align:center;">${s.activeDays}</td><td><span style="font-weight:700;color:var(--primary);">৳${s.cc}</span> <span style="font-size:10px;color:var(--text-muted);">(${tier})</span></td></tr>`;
+          html += `<tr><td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.name}</td><td style="white-space:nowrap;">${hall}</td><td style="text-align:center;white-space:nowrap;">${room}</td><td style="text-align:center;white-space:nowrap;font-weight:700;">${s.activeDays}</td><td style="text-align:center;white-space:nowrap;"><span style="font-weight:700;color:var(--primary);">৳${s.cc}</span> <span style="font-size:10px;color:var(--text-muted);">(${tier})</span></td></tr>`;
         });
       });
     });
 
-    html += `</tbody><tfoot><tr><td colspan="4" style="font-weight:700;text-align:right;">ব্যাচ ${batch} মোট:</td><td style="font-weight:700;color:var(--primary);">৳${bTotalCC}</td></tr></tfoot></table>
+    html += `</tbody><tfoot><tr><td colspan="4" style="font-weight:700;text-align:right;padding:8px 12px;">ব্যাচ ${batch} মোট:</td><td style="font-weight:700;color:var(--primary);text-align:center;padding:8px 12px;">৳${bTotalCC}</td></tr></tfoot></table>
       </div>
     </div>`;
   });
