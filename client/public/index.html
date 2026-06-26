@@ -3487,9 +3487,20 @@ async function _persistToServer(key, val) {
 
       // === MealOffs { studentId: { date: meals[] } } ===
       case 'mealOffs': {
+        // Server থেকে current state নিয়ে compare করি — delete হওয়া entries মুছে দিতে হবে
+        const serverOffs = await _apiFetch('/api/mealoffs') || {};
         for (const [sid, dates] of Object.entries(val||{})) {
           for (const [date, meals] of Object.entries(dates||{})) {
             await _apiFetch('/api/mealoffs','PUT',{ studentId: parseInt(sid), date, meals });
+          }
+        }
+        // Server-এ আছে কিন্তু নতুন val-এ নেই — delete করো
+        for (const [sid, dates] of Object.entries(serverOffs)) {
+          for (const date of Object.keys(dates||{})) {
+            const sidStr = String(sid);
+            if (!(val[sidStr] && val[sidStr][date])) {
+              await _apiFetch('/api/mealoffs','DELETE',{ studentId: parseInt(sid), date });
+            }
           }
         }
         break;
@@ -3497,9 +3508,19 @@ async function _persistToServer(key, val) {
 
       // === TempMealOns ===
       case 'tempMealOns': {
+        const serverTempOns = await _apiFetch('/api/tempmealons') || {};
         for (const [sid, dates] of Object.entries(val||{})) {
           for (const [date, meals] of Object.entries(dates||{})) {
             await _apiFetch('/api/tempmealons','PUT',{ studentId: parseInt(sid), date, meals });
+          }
+        }
+        // Server-এ আছে কিন্তু নতুন val-এ নেই — delete করো
+        for (const [sid, dates] of Object.entries(serverTempOns)) {
+          for (const date of Object.keys(dates||{})) {
+            const sidStr = String(sid);
+            if (!(val[sidStr] && val[sidStr][date])) {
+              await _apiFetch('/api/tempmealons','DELETE',{ studentId: parseInt(sid), date });
+            }
           }
         }
         break;
@@ -6310,7 +6331,7 @@ function adminMealChipToggle(meal) {
     </div>`;
 }
 
-function applyAdminMealOverride(studentId, date) {
+async function applyAdminMealOverride(studentId, date) {
   const students = getData('students', []);
   const s = students.find(x => x.id === studentId);
   if (!s) return;
@@ -6318,14 +6339,24 @@ function applyAdminMealOverride(studentId, date) {
   const newOffs = enabledMeals.filter(m => !_adminMealState[m]);
   const onMeals = enabledMeals.filter(m => !!_adminMealState[m]);
 
-  const offs = getData('mealOffs', {});
-  if (!offs[studentId]) offs[studentId] = {};
-  if (newOffs.length === 0) {
-    delete offs[studentId][date];
-  } else {
-    offs[studentId][date] = newOffs;
+  // ✅ সরাসরি API call — cache + server দুটোই আপডেট হবে নির্ভরযোগ্যভাবে
+  try {
+    // Server-এ save করুন (meals খালি হলে server DELETE করে দেয়)
+    await _apiFetch('/api/mealoffs', 'PUT', { studentId: parseInt(studentId), date, meals: newOffs });
+
+    // Cache আপডেট করুন
+    const offs = getData('mealOffs', {});
+    if (!offs[studentId]) offs[studentId] = {};
+    if (newOffs.length === 0) {
+      delete offs[studentId][date];
+    } else {
+      offs[studentId][date] = newOffs;
+    }
+    _cache['mealOffs'] = offs; // setData না করে সরাসরি cache update — API already called
+  } catch(e) {
+    showToast('সেভ করতে সমস্যা হয়েছে, আবার চেষ্টা করুন', 'error');
+    return;
   }
-  setData('mealOffs', offs);
 
   const mealLabel = { sokal: 'সকাল', dopore: 'দুপুর', ratre: 'রাত' };
   const offNames = newOffs.map(m => mealLabel[m] || m).join(', ');
@@ -6482,7 +6513,7 @@ function adminCancelTempMeal(studentId, date) {
   showToast('অস্থায়ী মিল বাতিল করা হয়েছে', 'info');
 }
 
-function saveAdminTempMeal() {
+async function saveAdminTempMeal() {
   const studentId = parseInt(document.getElementById('adminTempMealStudentId').value);
   const students = getData('students', []);
   const s = students.find(x => x.id === studentId);
@@ -6496,13 +6527,21 @@ function saveAdminTempMeal() {
   if (document.getElementById('atm-ratre').classList.contains('selected') && !s.meals.ratre) meals.push('ratre');
   if (meals.length === 0) return showToast('অন্তত একটি মিল নির্বাচন করুন (যেটি নিয়মিত প্ল্যানে নেই)', 'error');
 
+  // ✅ সরাসরি API call প্রতিটি date-এর জন্য — নির্ভরযোগ্য persistence
   const tempOns = getData('tempMealOns', {});
   if (!tempOns[studentId]) tempOns[studentId] = {};
-  adminTempSelectedDates.forEach(d => {
-    const existing = tempOns[studentId][d] || [];
-    tempOns[studentId][d] = Array.from(new Set([...existing, ...meals]));
-  });
-  setData('tempMealOns', tempOns);
+  try {
+    for (const d of adminTempSelectedDates) {
+      const existing = tempOns[studentId][d] || [];
+      const merged = Array.from(new Set([...existing, ...meals]));
+      await _apiFetch('/api/tempmealons', 'PUT', { studentId: parseInt(studentId), date: d, meals: merged });
+      tempOns[studentId][d] = merged;
+    }
+    _cache['tempMealOns'] = tempOns; // cache আপডেট, setData না — API already called
+  } catch(e) {
+    showToast('সেভ করতে সমস্যা হয়েছে, আবার চেষ্টা করুন', 'error');
+    return;
+  }
 
   const labels = { sokal:'☀️সকাল', dopore:'🌤️দুপুর', ratre:'🌙রাত' };
   addAudit('TEMP_MEAL_ON', `মিল: ${meals.map(m=>labels[m]).join('/')}, তারিখ: ${adminTempSelectedDates.join(', ')}`, studentId, s.name);
