@@ -2160,8 +2160,9 @@ input:checked + .slider:before { transform: translateX(20px); }
               <input type="text" class="form-control" id="adminAddRoom" placeholder="যেমন: 201">
             </div>
             <div class="form-group">
-              <label class="form-label">বিভাগ *</label>
+              <label class="form-label">বিভাগ</label>
               <select class="form-control" id="adminAddDept">
+                <option value="">— অজানা / প্রযোজ্য নয় —</option>
                 <option value="CSE">CSE</option>
                 <option value="EEE">EEE</option>
                 <option value="CE">CE</option>
@@ -10346,24 +10347,20 @@ async function approveGuestMeal(id) {
   const students = getData('students', []);
   const s = students.find(x => x.id === g.studentId);
   if (!s) return;
-  if (calcStudentNetBalance(s) < g.total) {
-    return showToast(`ব্যালেন্স অপর্যাপ্ত (${s.name}): প্রয়োজন ৳${g.total}, বর্তমান নেট ব্যালেন্স ৳${calcStudentNetBalance(s)}। আগে পেমেন্ট করুন।`, 'error');
-  }
-  // গেস্ট মিলের জন্য student.balance থেকে কাটা হয় (জমার accounting)
-  s.balance = (s.balance || 0) - g.total;
+  // গেস্ট মিল approved হলে calcTotalBill() স্বয়ংক্রিয়ভাবে bill-এ যোগ করে
+  // তাই s.balance থেকে আলাদা করে বাদ দেওয়া হয় না — double deduction এড়াতে
   g.status = 'approved';
   g.approvedAt = new Date().toLocaleString('bn-BD');
   // Update cache
   _cache['students'] = students;
   _cache['guestMeals'] = guestMeals;
   try {
-    await _apiFetch('/api/students/' + s.id, 'PUT', s);
     await _apiFetch('/api/guestmeals/' + g.id, 'PUT', g);
     addAudit('GUEST_MEAL_APPROVED', `গেস্ট: ${g.guestName}, মিল: ${(g.meals||[]).join('/')}, মোট: ৳${g.total}`, g.studentId, s ? s.name : '');
     renderAdminGuestList();
     renderAdminDashboard();
     renderHeroStats();
-    showToast(`${g.guestName} এর গেস্ট মিল অনুমোদিত হয়েছে। ৳${g.total} ${s.name}-এর ব্যালেন্স থেকে কাটা হয়েছে ✅`, 'success');
+    showToast(`${g.guestName} এর গেস্ট মিল অনুমোদিত হয়েছে। ৳${g.total} ${s.name}-এর মোট বিলে যোগ হয়েছে ✅`, 'success');
   } catch(e) {
     showToast('অনুমোদন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।', 'error');
     console.error('Approve guest meal error:', e);
@@ -10501,10 +10498,8 @@ async function adminSubmitGuestMeal() {
   const students = getData('students', []);
   const s = students.find(x => x.id === studentId);
   if (!s) return;
-  if (calcStudentNetBalance(s) < total) {
-    return showToast(`ছাত্রের ব্যালেন্স অপর্যাপ্ত। প্রয়োজন ৳${total}, বর্তমান নেট ব্যালেন্স ৳${calcStudentNetBalance(s)}`, 'error');
-  }
-  s.balance = (s.balance || 0) - total;
+  // গেস্ট মিল যোগ হলে calcTotalBill() স্বয়ংক্রিয়ভাবে bill-এ যোগ করে
+  // তাই s.balance থেকে আলাদা করে বাদ দেওয়া হয় না
 
   const newGuestMeal = {
     id: Date.now(),
@@ -10523,7 +10518,6 @@ async function adminSubmitGuestMeal() {
 
   try {
     // Direct API calls — reliable save
-    await _apiFetch('/api/students/' + s.id, 'PUT', s);
     const savedGuest = await _apiFetch('/api/guestmeals', 'POST', newGuestMeal);
     // Update cache
     _cache['students'] = students;
@@ -10544,7 +10538,7 @@ async function adminSubmitGuestMeal() {
 
     renderAdminGuestList();
     renderAdminDashboard();
-    showToast(`${s.name}-এর গেস্ট মিল যোগ হয়েছে। ৳${total} ব্যালেন্স থেকে কাটা হয়েছে। ✅`, 'success');
+    showToast(`${s.name}-এর গেস্ট মিল যোগ হয়েছে। ৳${total} মোট বিলে যোগ হয়েছে ✅`, 'success');
   } catch(e) {
     showToast('সেভ করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।', 'error');
     console.error('Submit guest meal error:', e);
@@ -11726,14 +11720,14 @@ function adminManualDiningOn() {
   const name = document.getElementById('adminAddName').value.trim();
   const batch = document.getElementById('adminAddBatch').value.trim();
   const room = document.getElementById('adminAddRoom').value.trim();
-  const dept = document.getElementById('adminAddDept').value;
+  const dept = document.getElementById('adminAddDept').value || null;
   const hall = document.getElementById('adminAddHall').value;
   const wa = document.getElementById('adminAddWA').value.trim() || '—';
   const password = document.getElementById('adminAddPassword').value.trim();
   const startDate = document.getElementById('adminAddStartDate').value;
   const balance = parseFloat(document.getElementById('adminAddBalance').value) || 0;
 
-  if (!name || !batch || !room || !dept || !hall || !password || !startDate) {
+  if (!name || !batch || !room || !hall || !password || !startDate) {
     return showToast('সব * চিহ্নিত তথ্য পূরণ করুন', 'error');
   }
   if (password.length < 4) return showToast('পাসওয়ার্ড কমপক্ষে ৪ অক্ষর', 'error');
