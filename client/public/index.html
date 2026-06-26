@@ -54,6 +54,25 @@ body {
   50% { box-shadow: 0 0 0 6px rgba(124,58,237,0); }
 }
 
+/* ===== GUEST COMBO BUTTONS ===== */
+.guest-combo-btn {
+  font-size:12px; padding:7px 13px; border-radius:22px;
+  border:2px solid var(--border); background:white;
+  cursor:pointer; font-family:inherit; color:var(--text);
+  font-weight:500; transition:all 0.15s;
+}
+.guest-combo-btn:hover { background:#f0f7f4; border-color:var(--primary-light); }
+.guest-combo-btn.active { background:var(--primary); color:white; border-color:var(--primary); font-weight:700; box-shadow:0 2px 8px rgba(26,107,60,0.25); }
+.guest-combo-btn.combo-blue { border-color:#93c5fd; background:#eff6ff; color:#1d4ed8; }
+.guest-combo-btn.combo-blue:hover { background:#dbeafe; }
+.guest-combo-btn.combo-blue.active { background:#1d4ed8; color:white; border-color:#1d4ed8; box-shadow:0 2px 8px rgba(29,78,216,0.3); }
+.guest-combo-btn.combo-purple { border-color:#c4b5fd; background:#f5f3ff; color:#6d28d9; }
+.guest-combo-btn.combo-purple:hover { background:#ede9fe; }
+.guest-combo-btn.combo-purple.active { background:#6d28d9; color:white; border-color:#6d28d9; box-shadow:0 2px 8px rgba(109,40,217,0.3); }
+.guest-combo-btn.combo-green { border-color:var(--primary-light); background:#f0fdf4; color:var(--primary); font-weight:700; }
+.guest-combo-btn.combo-green:hover { background:#dcfce7; }
+.guest-combo-btn.combo-green.active { background:var(--primary); color:white; border-color:var(--primary); box-shadow:0 2px 8px rgba(26,107,60,0.35); }
+
 /* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
@@ -1505,12 +1524,18 @@ input:checked + .slider:before { transform: translateX(20px); }
           <label class="form-label">তারিখসমূহ নির্বাচন করুন</label>
           <div id="guestDatePicker" class="date-range-picker"></div>
         </div>
+        <!-- hidden meal state holders -->
+        <div style="display:none;">
+          <div id="guestSokal"></div>
+          <div id="guestDopore"></div>
+          <div id="guestRatre"></div>
+        </div>
         <div class="form-group mt-3">
-          <label class="form-label">কোন মিল?</label>
-          <div class="meal-toggle-row">
-            <div class="meal-toggle" id="guestSokal" onclick="toggleGuestMeal(this)">☀️ সকাল</div>
-            <div class="meal-toggle" id="guestDopore" onclick="toggleGuestMeal(this)">🌤️ দুপুর</div>
-            <div class="meal-toggle" id="guestRatre" onclick="toggleGuestMeal(this)">🌙 রাত</div>
+          <label class="form-label">কোন মিল নির্বাচন করুন?</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;" id="guestComboRow">
+            <button type="button" id="gc_sokal_dopore" onclick="setGuestCombo('sokal_dopore',this)" class="guest-combo-btn combo-blue">☀️🌤️ সকাল+দুপুর</button>
+            <button type="button" id="gc_sokal_ratre" onclick="setGuestCombo('sokal_ratre',this)" class="guest-combo-btn combo-purple">☀️🌙 সকাল+রাত</button>
+            <button type="button" id="gc_all" onclick="setGuestCombo('all',this)" class="guest-combo-btn combo-green">☀️🌤️🌙 সকাল+দুপুর+রাত</button>
           </div>
         </div>
         <div id="guestCostPreview" style="background:var(--primary);color:white;border-radius:8px;padding:10px;font-size:13px;text-align:center;margin-bottom:12px;display:none;"></div>
@@ -1654,12 +1679,18 @@ input:checked + .slider:before { transform: translateX(20px); }
       <label class="form-label">তারিখসমূহ (নতুন করে নির্বাচন করুন)</label>
       <div id="editGuestDatePicker" class="date-range-picker"></div>
     </div>
+    <!-- hidden meal state holders -->
+    <div style="display:none;">
+      <div id="editGuestSokal"></div>
+      <div id="editGuestDopore"></div>
+      <div id="editGuestRatre"></div>
+    </div>
     <div class="form-group mt-3">
-      <label class="form-label">কোন মিল?</label>
-      <div class="meal-toggle-row">
-        <div class="meal-toggle" id="editGuestSokal" onclick="this.classList.toggle('selected');editGuestUpdateCost()">☀️ সকাল</div>
-        <div class="meal-toggle" id="editGuestDopore" onclick="this.classList.toggle('selected');editGuestUpdateCost()">🌤️ দুপুর</div>
-        <div class="meal-toggle" id="editGuestRatre" onclick="this.classList.toggle('selected');editGuestUpdateCost()">🌙 রাত</div>
+      <label class="form-label">কোন মিল নির্বাচন করুন?</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;" id="editGuestComboRow">
+        <button type="button" id="egc_sokal_dopore" onclick="setEditGuestCombo('sokal_dopore',this)" class="guest-combo-btn combo-blue">☀️🌤️ সকাল+দুপুর</button>
+        <button type="button" id="egc_sokal_ratre" onclick="setEditGuestCombo('sokal_ratre',this)" class="guest-combo-btn combo-purple">☀️🌙 সকাল+রাত</button>
+        <button type="button" id="egc_all" onclick="setEditGuestCombo('all',this)" class="guest-combo-btn combo-green">☀️🌤️🌙 সকাল+দুপুর+রাত</button>
       </div>
     </div>
     <!-- Custom charge override -->
@@ -1686,6 +1717,23 @@ input:checked + .slider:before { transform: translateX(20px); }
     </div>
     <div id="editGuestCostPreview" style="background:var(--purple);color:white;border-radius:8px;padding:10px;font-size:13px;text-align:center;margin-bottom:12px;display:none;"></div>
     <div id="editGuestBalanceDiff" style="font-size:13px;margin-bottom:12px;padding:8px 12px;border-radius:8px;display:none;"></div>
+    <!-- বিল ম্যানুয়াল অ্যাডজাস্ট -->
+    <div style="background:#fef9c3;border:1px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:8px;">🔧 বিল ম্যানুয়ালি বাড়ান / কমান (ঐচ্ছিক)</div>
+      <div style="font-size:11px;color:#78350f;margin-bottom:8px;">উপরের হিসাব ঠিক থাকলে এখানে হাত না দিলেও চলবে। শুধু দরকার হলে ব্যবহার করুন।</div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+        <div style="flex:1;min-width:110px;">
+          <div style="font-size:11px;color:#78350f;margin-bottom:3px;">বাড়ান (৳) — ছাত্রের কাছ থেকে বেশি কাটবে</div>
+          <input type="number" id="editGuestBillAdd" min="0" placeholder="0" class="form-control" oninput="editGuestManualBillCalc()" style="padding:7px 10px;font-size:13px;">
+        </div>
+        <div style="flex:1;min-width:110px;">
+          <div style="font-size:11px;color:#78350f;margin-bottom:3px;">কমান (৳) — ছাত্রকে ছাড় দেওয়া হবে</div>
+          <input type="number" id="editGuestBillSub" min="0" placeholder="0" class="form-control" oninput="editGuestManualBillCalc()" style="padding:7px 10px;font-size:13px;">
+        </div>
+        <button type="button" onclick="editGuestClearManualBill()" style="padding:7px 12px;font-size:12px;border-radius:8px;border:1px solid var(--border);background:white;cursor:pointer;font-family:inherit;color:var(--text-muted);">✕ রিসেট</button>
+      </div>
+      <div id="editGuestManualBillNote" style="margin-top:8px;font-size:12px;display:none;padding:6px 10px;border-radius:6px;font-weight:600;"></div>
+    </div>
     <button class="btn btn-primary btn-full" onclick="adminSaveGuestMealEdit()">💾 সেভ করুন</button>
   </div>
 </div>
@@ -1985,12 +2033,18 @@ input:checked + .slider:before { transform: translateX(20px); }
               <label class="form-label">তারিখসমূহ</label>
               <div id="adminGuestDatePicker" class="date-range-picker"></div>
             </div>
+            <!-- hidden meal state holders -->
+            <div style="display:none;">
+              <div id="adminGuestSokal"></div>
+              <div id="adminGuestDopore"></div>
+              <div id="adminGuestRatre"></div>
+            </div>
             <div class="form-group mt-3">
-              <label class="form-label">কোন মিল?</label>
-              <div class="meal-toggle-row">
-                <div class="meal-toggle" id="adminGuestSokal" onclick="this.classList.toggle('selected');adminGuestUpdateCost()">☀️ সকাল</div>
-                <div class="meal-toggle" id="adminGuestDopore" onclick="this.classList.toggle('selected');adminGuestUpdateCost()">🌤️ দুপুর</div>
-                <div class="meal-toggle" id="adminGuestRatre" onclick="this.classList.toggle('selected');adminGuestUpdateCost()">🌙 রাত</div>
+              <label class="form-label">কোন মিল নির্বাচন করুন?</label>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;" id="adminGuestComboRow">
+                <button type="button" id="agc_sokal_dopore" onclick="setAdminGuestCombo('sokal_dopore',this)" class="guest-combo-btn combo-blue">☀️🌤️ সকাল+দুপুর</button>
+                <button type="button" id="agc_sokal_ratre" onclick="setAdminGuestCombo('sokal_ratre',this)" class="guest-combo-btn combo-purple">☀️🌙 সকাল+রাত</button>
+                <button type="button" id="agc_all" onclick="setAdminGuestCombo('all',this)" class="guest-combo-btn combo-green">☀️🌤️🌙 সকাল+দুপুর+রাত</button>
               </div>
             </div>
             <div id="adminGuestCostPreview" style="background:var(--purple);color:white;border-radius:8px;padding:10px;font-size:13px;text-align:center;margin-bottom:12px;display:none;"></div>
@@ -2699,6 +2753,7 @@ input:checked + .slider:before { transform: translateX(20px); }
               <option value="SETTINGS_CHANGED">সেটিংস পরিবর্তন</option>
               <option value="MEAL_OFF_OVERRIDE">মিল অফ ওভাররাইড</option>
               <option value="TEMP_MEAL_ON">অস্থায়ী মিল (অ্যাডমিন)</option>
+              <option value="BILL_ADJUST">বিল সমন্বয়</option>
             </select>
             <button class="btn btn-sm btn-outline" onclick="clearAuditLog()" style="font-size:12px;">🗑️ লগ পরিষ্কার করুন</button>
           </div>
@@ -2893,6 +2948,126 @@ input:checked + .slider:before { transform: translateX(20px); }
   </div>
 </div>
 
+
+<!-- BILL ADJUST MODAL -->
+<div class="modal-overlay" id="billAdjustModal" onclick="if(event.target===this)closeModal('billAdjustModal')">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">✏️ বিল সমন্বয়</div>
+      <button class="modal-close" onclick="closeModal('billAdjustModal')">✕</button>
+    </div>
+    <div id="billAdjustStudentInfo" style="background:var(--bg);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:13px;border:1px solid var(--border);"></div>
+    <div style="background:#fef9c3;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#854d0e;">
+      💡 <strong>বিল বাড়াতে</strong> ধনাত্মক (+) সংখ্যা দিন। <strong>বিল কমাতে</strong> ঋণাত্মক (−) সংখ্যা দিন।<br>
+      যেমন: <strong>+50</strong> মানে বিল ৳50 বাড়বে | <strong>-30</strong> মানে বিল ৳30 কমবে।
+    </div>
+    <div class="form-group">
+      <label class="form-label">সমন্বয়ের পরিমাণ (৳)</label>
+      <input type="number" class="form-control" id="billAdjustAmount" placeholder="যেমন: 50 বা -30" style="text-align:center;font-size:16px;font-weight:700;" oninput="updateBillAdjustPreview()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">কারণ / মন্তব্য (ঐচ্ছিক)</label>
+      <input type="text" class="form-control" id="billAdjustNote" placeholder="যেমন: অতিরিক্ত আইটেম, ছাড় ইত্যাদি">
+    </div>
+    <div id="billAdjustPreview" style="display:none;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;text-align:center;font-weight:700;"></div>
+    <input type="hidden" id="billAdjustStudentId">
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-outline" style="flex:1;" onclick="closeModal('billAdjustModal')">বাতিল</button>
+      <button class="btn btn-danger" style="flex:1;" onclick="clearBillAdjust()">🗑️ সমন্বয় বাতিল</button>
+      <button class="btn btn-primary" style="flex:2;" onclick="saveBillAdjust()">✅ সেভ করুন</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== BILL ADJUST ====================
+function openBillAdjustModal(studentId) {
+  const students = getData('students', []);
+  const s = students.find(x => x.id === studentId);
+  if (!s) return;
+  const totalBill = calcTotalBill(s);
+  const deposited = calcStudentTotalDeposited(s);
+  const currentAdj = s.billAdjust || 0;
+  const refund = deposited > totalBill ? deposited - totalBill : 0;
+  const due = totalBill > deposited ? totalBill - deposited : 0;
+
+  document.getElementById('billAdjustStudentId').value = studentId;
+  document.getElementById('billAdjustAmount').value = currentAdj !== 0 ? currentAdj : '';
+  document.getElementById('billAdjustNote').value = s.billAdjustNote || '';
+  document.getElementById('billAdjustStudentInfo').innerHTML = `
+    <div style="font-weight:700;font-size:14px;color:var(--primary-dark);margin-bottom:8px;">👤 ${s.name} — ব্যাচ ${s.batch} | রুম ${s.room}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+      <div style="text-align:center;background:#dbeafe;border-radius:8px;padding:8px 4px;">
+        <div style="font-size:15px;font-weight:800;color:#1d4ed8;">৳${totalBill}</div>
+        <div style="font-size:10px;color:#1e40af;">মোট বিল</div>
+      </div>
+      <div style="text-align:center;background:#dcfce7;border-radius:8px;padding:8px 4px;">
+        <div style="font-size:15px;font-weight:800;color:#166534;">৳${deposited}</div>
+        <div style="font-size:10px;color:#166534;">মোট জমা</div>
+      </div>
+      <div style="text-align:center;background:${refund>0?'#f5f3ff':due>0?'#fee2e2':'#f0fdf4'};border-radius:8px;padding:8px 4px;">
+        <div style="font-size:15px;font-weight:800;color:${refund>0?'#6d28d9':due>0?'#dc2626':'#16a34a'};">${refund>0?'↩️৳'+refund:due>0?'🔴৳'+due:'✅'}</div>
+        <div style="font-size:10px;color:#6b7280;">${refund>0?'ফেরত পাবে':due>0?'বকেয়া':'Clear'}</div>
+      </div>
+    </div>
+    ${currentAdj !== 0 ? `<div style="margin-top:8px;font-size:12px;background:#fef9c3;border-radius:6px;padding:6px 10px;color:#854d0e;">⚙️ বর্তমান সমন্বয়: <strong>${currentAdj > 0 ? '+' : ''}৳${currentAdj}</strong>${s.billAdjustNote ? ` — ${s.billAdjustNote}` : ''}</div>` : ''}
+  `;
+  document.getElementById('billAdjustPreview').style.display = 'none';
+  openModal('billAdjustModal');
+}
+
+function updateBillAdjustPreview() {
+  const adj = parseFloat(document.getElementById('billAdjustAmount').value) || 0;
+  const studentId = parseInt(document.getElementById('billAdjustStudentId').value);
+  const students = getData('students', []);
+  const s = students.find(x => x.id === studentId);
+  if (!s) return;
+  const deposited = calcStudentTotalDeposited(s);
+  // bill without stored adj, then apply new adj
+  const storedAdj = s.billAdjust || 0;
+  const billBase = Math.max(0, calcTotalBill(s) - storedAdj);
+  const newBill = Math.max(0, billBase + adj);
+  const newRefund = deposited > newBill ? deposited - newBill : 0;
+  const newDue = newBill > deposited ? newBill - deposited : 0;
+  const el = document.getElementById('billAdjustPreview');
+  if (adj === 0) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.style.background = adj > 0 ? '#fee2e2' : '#dcfce7';
+  el.style.border = `1px solid ${adj > 0 ? '#fca5a5' : '#86efac'}`;
+  el.style.color = adj > 0 ? '#991b1b' : '#166534';
+  el.innerHTML = `নতুন বিল হবে: <strong>৳${newBill}</strong> (${adj > 0 ? '৳'+adj+' বেড়েছে' : '৳'+Math.abs(adj)+' কমেছে'})
+    <br>${newRefund > 0 ? `↩️ ফেরত পাবে: <strong>৳${newRefund}</strong>` : newDue > 0 ? `🔴 বকেয়া থাকবে: <strong>৳${newDue}</strong>` : '✅ বিল পরিশোধিত হবে'}`;
+}
+
+async function saveBillAdjust() {
+  const adj = parseFloat(document.getElementById('billAdjustAmount').value) || 0;
+  const note = document.getElementById('billAdjustNote').value.trim();
+  const studentId = parseInt(document.getElementById('billAdjustStudentId').value);
+  const students = getData('students', []);
+  const idx = students.findIndex(x => x.id === studentId);
+  if (idx < 0) return;
+  students[idx].billAdjust = adj;
+  students[idx].billAdjustNote = note;
+  await setData('students', students);
+  addAudit('BILL_ADJUST', `বিল সমন্বয়: ${adj > 0 ? '+' : ''}৳${adj}${note ? ' — ' + note : ''}`, studentId, students[idx].name);
+  closeModal('billAdjustModal');
+  renderAttendanceCal();
+  showToast(`${students[idx].name}-এর বিল সমন্বয় সেভ হয়েছে ✅`, 'success');
+}
+
+async function clearBillAdjust() {
+  const studentId = parseInt(document.getElementById('billAdjustStudentId').value);
+  const students = getData('students', []);
+  const idx = students.findIndex(x => x.id === studentId);
+  if (idx < 0) return;
+  students[idx].billAdjust = 0;
+  students[idx].billAdjustNote = '';
+  await setData('students', students);
+  closeModal('billAdjustModal');
+  renderAttendanceCal();
+  showToast('বিল সমন্বয় বাতিল করা হয়েছে', 'info');
+}
+</script>
 
 <!-- STUDENT LOGIN MODAL -->
 <div class="modal-overlay" id="studentLoginModal">
@@ -5204,7 +5379,8 @@ function calcTotalBill(student) {
   const guestCost = guestMeals
     .filter(g => g.studentId === student.id && (g.status || 'approved') === 'approved')
     .reduce((sum, g) => sum + (g.dates || []).filter(gd => gd >= start && gd <= end).length * (g.perDay || 0), 0);
-  return totalCost + guestCost;
+  const adj = student.billAdjust || 0;
+  return Math.max(0, totalCost + guestCost + adj);
 }
 
 function isClearPayment(student) {
@@ -6527,11 +6703,18 @@ function renderAdminDashboard() {
   const pendingPay = payments.filter(p => p.status === 'pending').length;
   const guestMeals = getData('guestMeals', []);
   const pendingGuest = guestMeals.filter(g => g.status === 'pending').length;
-  const totalDue = students.reduce((sum, s) => sum + Math.max(0, calcDue(s)), 0);
+  const totalDue = students.reduce((sum, s) => {
+    // মোট বকেয়া = যাদের (মোট বিল > জমা), তাদের (বিল − জমা) এর যোগফল
+    const bill = calcTotalBill(s);
+    const dep  = calcStudentTotalDeposited(s);
+    return sum + Math.max(0, bill - dep);
+  }, 0);
   // totalDeposited = শুধু approved payments এর মোট জমা (charge বাদে)
   const totalDeposited = payments.filter(p => p.status === 'approved').reduce((sum, p) => sum + (p.netAmount != null ? p.netAmount : p.amount || 0), 0);
-  // totalBalance = sum of net balances (deposited − meal cost − guest meal) across all students
-  const totalBalance = students.reduce((sum, s) => sum + calcStudentNetBalance(s), 0);
+  // totalBalance = মোট জমা − বাজার খরচ (ক্যাশ ফ্লো ব্যালেন্স)
+  const bazar_early = getData('bazar', []);
+  const totalBazarForBalance = bazar_early.reduce((a, b) => a + (b.cost || 0), 0);
+  const totalBalance = totalDeposited - totalBazarForBalance;
 
   // Batch counts
   const batchCounts = {};
@@ -6551,9 +6734,9 @@ function renderAdminDashboard() {
     { icon:'⏳', num: pending, label:'অপেক্ষমাণ', color:'#92400e', click:`goToPendingStudents()` },
     { icon:'💰', num: pendingPay, label:'পেমেন্ট অপেক্ষমাণ', color:'var(--accent)', click:`goToPendingPayments()` },
     { icon:'👤', num: pendingGuest, label:'গেস্ট মিল অপেক্ষমাণ', color:'#7c3aed', click:`goToPendingGuest()` },
-    { icon:'📥', num: '৳'+totalDeposited.toLocaleString('bn-BD'), label:'মোট জমা (অনুমোদিত)', color:'var(--primary)', click:'' },
-    { icon:'💵', num: '৳'+totalBalance.toLocaleString('bn-BD'), label:'নেট ব্যালেন্স (জমা − খরচ)', color: totalBalance < 0 ? 'var(--danger)' : 'var(--primary)', click:'' },
-    { icon:'🔴', num: '৳'+totalDue.toLocaleString('bn-BD'), label:'মোট বকেয়া (calcDue)', color:'var(--danger)', click:'' },
+    { icon:'📥', num: '৳'+totalDeposited.toLocaleString('bn-BD'), label:'মোট জমা', color:'var(--primary)', click:'' },
+    { icon:'💵', num: '৳'+totalBalance.toLocaleString('bn-BD'), label:'নেট ব্যালেন্স (জমা − বাজার)', color: totalBalance < 0 ? 'var(--danger)' : 'var(--primary)', click:'' },
+    { icon:'🔴', num: '৳'+totalDue.toLocaleString('bn-BD'), label:'মোট বকেয়া', color:'var(--danger)', click:'' },
   ].map(s => `
     <div class="admin-stat-card" ${s.click ? `onclick="${s.click}" style="cursor:pointer;" title="ক্লিক করুন"` : ''}>
       <div class="stat-icon">${s.icon}</div>
@@ -7763,13 +7946,14 @@ function renderAttendanceCal() {
                 <th style="background:#0f766e;color:white;padding:4px 6px;white-space:nowrap;min-width:90px;">জমা</th>
                 <th style="background:#7c3aed;color:white;padding:4px 6px;white-space:nowrap;min-width:80px;">💰 ব্যালেন্স</th>
                 <th style="background:#991b1b;color:white;padding:4px 6px;white-space:nowrap;min-width:80px;">বকেয়া</th>
+                <th style="background:#6d28d9;color:white;padding:4px 6px;white-space:nowrap;min-width:70px;">↩️ ফেরত</th>
               </tr>
             </thead>
             <tbody>`;
 
       Object.keys(grouped[batch][hall]).sort().forEach(room => {
         const roomStudents = grouped[batch][hall][room];
-        const colSpan = datesForHeader.length + 5;
+        const colSpan = datesForHeader.length + 6;
 
         html += `<tr>
           <td colspan="${colSpan}" style="padding:5px 10px;background:${bc.bg}33;font-size:12px;font-weight:700;color:${bc.text};border-top:2px solid ${bc.border};border-bottom:1px solid ${bc.border};">
@@ -7923,7 +8107,13 @@ function renderAttendanceCal() {
               }
               return `<td ${cellOnclick}background:var(--danger-bg);${cellBase}">${wrap(mealStatusRows+extraBadges)}</td>`;
             }).join('')}
-            <td style="padding:5px 8px;font-weight:700;color:#1d4ed8;white-space:nowrap;border-bottom:1px solid var(--border);">৳${totalBill}</td>
+            <td style="padding:5px 8px;font-weight:700;color:#1d4ed8;white-space:nowrap;border-bottom:1px solid var(--border);">
+              <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+                <span>৳${totalBill}</span>
+                ${s.billAdjust ? `<span style="font-size:10px;font-weight:700;background:${s.billAdjust>0?'#fee2e2':'#dcfce7'};color:${s.billAdjust>0?'#991b1b':'#166534'};border-radius:6px;padding:1px 5px;">${s.billAdjust>0?'+':''}৳${s.billAdjust}</span>` : ''}
+                <button onclick="openBillAdjustModal(${s.id})" style="padding:1px 6px;border:1px dashed #1d4ed8;border-radius:6px;background:#eff6ff;color:#1d4ed8;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;" title="বিল সমন্বয় করুন">✏️</button>
+              </div>
+            </td>
             <td style="padding:5px 8px;border-bottom:1px solid var(--border);min-width:90px;">
               <div style="font-weight:700;color:#0f766e;white-space:nowrap;">৳${deposits.total}</div>
               ${deposits.list.length > 0 ? `<div style="margin-top:3px;max-height:54px;overflow-y:auto;">
@@ -7943,6 +8133,15 @@ function renderAttendanceCal() {
             <td style="padding:5px 8px;font-weight:700;color:${due>0?'var(--danger)':'#16a34a'};white-space:nowrap;border-bottom:1px solid var(--border);">
               ${due > 0 ? '৳'+due : '<span style="font-size:11px;">✅ পরিশোধিত</span>'}
               <button class="btn btn-sm btn-info" style="padding:1px 6px;font-size:10px;margin-left:2px;" onclick="openDepositHistory(${s.id})" title="বিস্তারিত">💳</button>
+            </td>
+            <td style="padding:5px 8px;white-space:nowrap;border-bottom:1px solid var(--border);text-align:center;">
+              ${(() => {
+                const dep = calcStudentTotalDeposited(s);
+                const refund = dep - totalBill;
+                if (refund > 0) return `<div style="font-weight:800;color:#6d28d9;font-size:13px;">৳${refund}</div><div style="font-size:9px;color:#9ca3af;">ফেরত পাবে</div>`;
+                if (due > 0) return `<div style="font-size:10px;color:#9ca3af;">—</div>`;
+                return `<div style="font-size:10px;color:#16a34a;">✅</div>`;
+              })()}
             </td>
           </tr>`;
         });
@@ -9566,28 +9765,137 @@ function renderGuestDatePicker() {
 // নির্বাচিত তারিখগুলোর মধ্যে কোনো একটির জন্য মিল cutoff-গত হলে সেই মিল টগল disable করো
 function updateGuestMealToggleForDate() {
   const selectedDates = Array.from(document.querySelectorAll('#guestDatePicker .date-chip.selected')).map(el => el.dataset.date);
-  const mealMap = { sokal: 'guestSokal', dopore: 'guestDopore', ratre: 'guestRatre' };
+
+  // Which meals are locked (cutoff passed for any selected date)?
+  const lockedMeals = new Set();
   ['sokal','dopore','ratre'].forEach(m => {
-    const toggleEl = document.getElementById(mealMap[m]);
-    if (!toggleEl) return;
-    const lockedForAnySelected = selectedDates.some(d => !isMealAvailableForDate(d, m));
-    if (lockedForAnySelected) {
-      toggleEl.classList.add('cutoff-disabled');
-      toggleEl.classList.remove('selected');
-      toggleEl.style.pointerEvents = 'none';
-      toggleEl.style.opacity = '0.4';
-    } else {
-      toggleEl.classList.remove('cutoff-disabled');
-      toggleEl.style.pointerEvents = '';
-      toggleEl.style.opacity = '';
-    }
+    if (selectedDates.some(d => !isMealAvailableForDate(d, m))) lockedMeals.add(m);
   });
+
+  // Also update hidden divs — remove selected if meal is locked
+  ['sokal','dopore','ratre'].forEach(m => {
+    const idMap = { sokal:'guestSokal', dopore:'guestDopore', ratre:'guestRatre' };
+    const el = document.getElementById(idMap[m]);
+    if (el && lockedMeals.has(m)) el.classList.remove('selected');
+  });
+
+  // Disable combo buttons whose meals include any locked meal
+  const comboMeals = { gc_sokal:['sokal'], gc_dopore:['dopore'], gc_ratre:['ratre'], gc_sokal_dopore:['sokal','dopore'], gc_dopore_ratre:['dopore','ratre'], gc_all:['sokal','dopore','ratre'] };
+  Object.entries(comboMeals).forEach(([id, meals]) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const hasLocked = meals.some(m => lockedMeals.has(m));
+    btn.disabled = hasLocked;
+    btn.style.opacity = hasLocked ? '0.4' : '';
+    btn.style.cursor = hasLocked ? 'not-allowed' : '';
+    if (hasLocked) btn.classList.remove('active');
+  });
+
   updateGuestCost();
 }
 
 function toggleGuestMeal(el) {
   el.classList.toggle('selected');
   updateGuestCost();
+}
+
+// Student guest meal combo shortcuts
+function setGuestCombo(combo, btn) {
+  // active highlight
+  document.querySelectorAll('#guestComboRow .guest-combo-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  // set hidden meal divs
+  const meals = _comboToMeals(combo);
+  ['sokal','dopore','ratre'].forEach(m => {
+    const el = document.getElementById('guestSokal'.replace('sokal', m === 'sokal' ? 'sokal' : m === 'dopore' ? 'Dopore' : 'Ratre').replace('guestS','guestS'));
+    // easier direct ids:
+  });
+  const s = document.getElementById('guestSokal');
+  const d = document.getElementById('guestDopore');
+  const r = document.getElementById('guestRatre');
+  s && s.classList.toggle('selected', meals.includes('sokal'));
+  d && d.classList.toggle('selected', meals.includes('dopore'));
+  r && r.classList.toggle('selected', meals.includes('ratre'));
+  updateGuestCost();
+  updateGuestMealToggleForDate();
+}
+
+// Admin guest meal add combo shortcuts
+function setAdminGuestCombo(combo, btn) {
+  document.querySelectorAll('#adminGuestComboRow .guest-combo-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const meals = _comboToMeals(combo);
+  const s = document.getElementById('adminGuestSokal');
+  const d = document.getElementById('adminGuestDopore');
+  const r = document.getElementById('adminGuestRatre');
+  s && s.classList.toggle('selected', meals.includes('sokal'));
+  d && d.classList.toggle('selected', meals.includes('dopore'));
+  r && r.classList.toggle('selected', meals.includes('ratre'));
+  adminGuestUpdateCost();
+}
+
+// Admin guest meal edit combo shortcuts
+function setEditGuestCombo(combo, btn) {
+  document.querySelectorAll('#editGuestComboRow .guest-combo-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const meals = _comboToMeals(combo);
+  const s = document.getElementById('editGuestSokal');
+  const d = document.getElementById('editGuestDopore');
+  const r = document.getElementById('editGuestRatre');
+  s && s.classList.toggle('selected', meals.includes('sokal'));
+  d && d.classList.toggle('selected', meals.includes('dopore'));
+  r && r.classList.toggle('selected', meals.includes('ratre'));
+  editGuestUpdateCost();
+}
+
+function _comboToMeals(combo) {
+  return { sokal_dopore:['sokal','dopore'], sokal_ratre:['sokal','ratre'], all:['sokal','dopore','ratre'] }[combo] || [];
+}
+
+// edit modal — highlight the right combo button based on saved meals
+function _highlightEditCombo(meals) {
+  const key = _mealsToComboKey(meals);
+  document.querySelectorAll('#editGuestComboRow .guest-combo-btn').forEach(b => b.classList.remove('active'));
+  const btnMap = { sokal_dopore:'egc_sokal_dopore', sokal_ratre:'egc_sokal_ratre', all:'egc_all' };
+  if (key && btnMap[key]) document.getElementById(btnMap[key])?.classList.add('active');
+}
+function _mealsToComboKey(meals) {
+  const s = meals.includes('sokal'), d = meals.includes('dopore'), r = meals.includes('ratre');
+  if (s && d && r) return 'all';
+  if (s && r) return 'sokal_ratre';
+  if (s && d) return 'sokal_dopore';
+  if (d) return 'sokal_dopore';
+  if (r) return 'sokal_ratre';
+  return 'sokal_dopore';
+}
+
+// Manual bill adjust (edit modal)
+function editGuestManualBillCalc() {
+  const addVal = parseFloat(document.getElementById('editGuestBillAdd')?.value) || 0;
+  const subVal = parseFloat(document.getElementById('editGuestBillSub')?.value) || 0;
+  const noteEl = document.getElementById('editGuestManualBillNote');
+  if (!noteEl) return;
+  if (addVal === 0 && subVal === 0) { noteEl.style.display = 'none'; return; }
+  const net = addVal - subVal;
+  noteEl.style.display = '';
+  if (net > 0) {
+    noteEl.style.background = '#fee2e2'; noteEl.style.color = '#991b1b';
+    noteEl.innerHTML = `➕ চূড়ান্ত বিলে ৳${net} যোগ হবে (ছাত্রের ব্যালেন্স থেকে বেশি কাটবে)`;
+  } else if (net < 0) {
+    noteEl.style.background = '#dcfce7'; noteEl.style.color = '#166534';
+    noteEl.innerHTML = `➖ চূড়ান্ত বিল থেকে ৳${Math.abs(net)} কমবে (ছাড় দেওয়া হবে)`;
+  } else {
+    noteEl.style.display = 'none';
+  }
+}
+
+function editGuestClearManualBill() {
+  const addEl = document.getElementById('editGuestBillAdd');
+  const subEl = document.getElementById('editGuestBillSub');
+  if (addEl) addEl.value = '';
+  if (subEl) subEl.value = '';
+  const noteEl = document.getElementById('editGuestManualBillNote');
+  if (noteEl) noteEl.style.display = 'none';
 }
 
 function updateGuestCost() {
@@ -9681,6 +9989,7 @@ function submitGuestMeal() {
   // Reset form
   document.getElementById('guestName').value = '';
   ['guestSokal','guestDopore','guestRatre'].forEach(id => document.getElementById(id)?.classList.remove('selected'));
+  document.querySelectorAll('#guestComboRow .guest-combo-btn').forEach(b => b.classList.remove('active'));
   renderGuestDatePicker();
   updateGuestCost();
   renderGuestMealList();
@@ -9972,6 +10281,7 @@ function adminSubmitGuestMeal() {
   document.getElementById('adminGuestDatePicker').innerHTML = '';
   document.getElementById('adminGuestCostPreview').style.display = 'none';
   ['adminGuestSokal','adminGuestDopore','adminGuestRatre'].forEach(id => document.getElementById(id)?.classList.remove('selected'));
+  document.querySelectorAll('#adminGuestComboRow .guest-combo-btn').forEach(b => b.classList.remove('active'));
 
   renderAdminGuestList();
   renderAdminDashboard();
@@ -9995,6 +10305,7 @@ function adminEditGuestMeal(guestMealId) {
   if ((g.meals||[]).includes('sokal')) document.getElementById('editGuestSokal')?.classList.add('selected');
   if ((g.meals||[]).includes('dopore')) document.getElementById('editGuestDopore')?.classList.add('selected');
   if ((g.meals||[]).includes('ratre')) document.getElementById('editGuestRatre')?.classList.add('selected');
+  _highlightEditCombo(g.meals || []);
 
   // Custom charges — pre-fill if previously saved
   const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
@@ -10018,6 +10329,14 @@ function adminEditGuestMeal(guestMealId) {
     d = addDays(d, 1);
   }
   el.innerHTML = html || '<div class="text-muted" style="font-size:13px;">তারিখ পাওয়া যায়নি</div>';
+
+  // manual bill adjust reset
+  const addEl = document.getElementById('editGuestBillAdd');
+  const subEl = document.getElementById('editGuestBillSub');
+  if (addEl) addEl.value = '';
+  if (subEl) subEl.value = '';
+  const noteEl = document.getElementById('editGuestManualBillNote');
+  if (noteEl) noteEl.style.display = 'none';
 
   editGuestUpdateCost();
   openModal('adminGuestEditModal');
@@ -10124,17 +10443,23 @@ function adminSaveGuestMealEdit() {
   const perDay = mealCost + cookingCharge;
   const newTotal = perDay * selectedDates.length;
 
+  const manualAdd = parseFloat(document.getElementById('editGuestBillAdd')?.value) || 0;
+  const manualSub = parseFloat(document.getElementById('editGuestBillSub')?.value) || 0;
+  const manualNet = manualAdd - manualSub;
+  const adjustedTotal = Math.max(0, newTotal + manualNet);
+
   const customCharges = {};
   if (cSokal !== null) customCharges.sokal = cSokal;
   if (cDopore !== null) customCharges.dopore = cDopore;
   if (cRatre !== null) customCharges.ratre = cRatre;
   if (cCooking !== null) customCharges.cooking = cCooking;
+  if (manualNet !== 0) customCharges.manualAdj = manualNet;
 
   const guestMeals = getData('guestMeals', []);
   const idx = guestMeals.findIndex(x => x.id === guestMealId);
   if (idx === -1) return;
   const g = guestMeals[idx];
-  const diff = newTotal - g.total;
+  const diff = adjustedTotal - g.total;
 
   if (diff !== 0) {
     const students = getData('students', []);
@@ -10148,7 +10473,7 @@ function adminSaveGuestMealEdit() {
     }
   }
 
-  guestMeals[idx] = { ...g, guestName, dates: selectedDates, meals, perDay, total: newTotal, customCharges: Object.keys(customCharges).length ? customCharges : undefined, editedAt: new Date().toLocaleString('bn-BD') };
+  guestMeals[idx] = { ...g, guestName, dates: selectedDates, meals, perDay, total: adjustedTotal, customCharges: Object.keys(customCharges).length ? customCharges : undefined, editedAt: new Date().toLocaleString('bn-BD') };
   setData('guestMeals', guestMeals);
   closeModal('adminGuestEditModal');
   renderAdminGuestList();
@@ -10591,6 +10916,7 @@ function renderAuditLog() {
     GUEST_MEAL_REJECTED: { l:'গেস্ট মিল প্রত্যাখ্যান', c:'#991b1b', bg:'#fee2e2' },
     SETTINGS_CHANGED: { l:'সেটিংস পরিবর্তন', c:'#0f766e', bg:'#ccfbf1' },
     MEAL_OFF_OVERRIDE:{ l:'মিল অফ ওভাররাইড', c:'#92400e', bg:'#fef9c3' },
+    BILL_ADJUST:      { l:'বিল সমন্বয়',       c:'#4c1d95', bg:'#ede9fe' },
     TEMP_MEAL_ON:     { l:'অস্থায়ী মিল (অ্যাডমিন)', c:'#5b21b6', bg:'#f5f3ff' },
   };
 
