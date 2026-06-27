@@ -5297,6 +5297,7 @@ function calcCookingCharge(activeDays, ratePerDay) {
 }
 
 // দৈনিক মিল-খরচ হিসাব — অফ/টেম্পোরারি মিল বিবেচনা করে, স্টার্ট ডেট থেকে আজ পর্যন্ত
+// Cooking charge: tier-based — ১-৭ দিন = ৫×দিন, ৮-১৫ দিন = flat ৭৫
 function calcMealCostSoFar(student) {
   const today = todayStr();
   const start = student.startDate || today;
@@ -5307,16 +5308,19 @@ function calcMealCostSoFar(student) {
   const offs = getData('mealOffs', {});
   const tempOns = getData('tempMealOns', {});
   const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
-  let totalCost = 0;
+  const comboFull = getComboFull(student, rates);
+  const cookingRate = comboFull.cooking || 5;
+  let totalMealCost = 0;
+  let activeDays = 0;
   for (let i = 0; i < days; i++) {
     const d = addDays(start, i);
     if (d > today) break;
     const dayOffs = (offs[student.id] || {})[d] || [];
     const dayTempOns = (tempOns[student.id] || {})[d] || [];
     const dayCost = calcDayMealCost(student, d, dayOffs, dayTempOns, rates);
-    if (dayCost > 0) totalCost += dayCost + calcDayCookingCharge(student, d, dayOffs, dayTempOns, rates);
+    if (dayCost > 0) { totalMealCost += dayCost; activeDays++; }
   }
-  return totalCost;
+  return totalMealCost + calcCookingCharge(activeDays, cookingRate);
 }
 
 // ==================== NET BALANCE & DUE (single source of truth) ====================
@@ -5425,17 +5429,26 @@ function calcTotalBill(student) {
   const offs = getData('mealOffs', {});
   const tempOns = getData('tempMealOns', {});
   const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
-  let totalCost = 0;
-  let activeMealDaysFull = 0;
-  // cooking charge: ছাত্রের combo plan অনুযায়ী
+  let totalMealCost = 0;
+  let activeDays = 0;
+  // cooking charge: tier-based — ১-৭ দিন = ৫×দিন, ৮-১৫ দিন = flat ৭৫
+  // ছাত্রের combo plan অনুযায়ী cooking rate বের করা
+  const comboFull = getComboFull(student, rates);
+  const cookingRate = comboFull.cooking || 5;
   let d = start;
   while (d <= end) {
     const dayOffs = (offs[student.id] || {})[d] || [];
     const dayTempOns = (tempOns[student.id] || {})[d] || [];
     const dayCost = calcDayMealCost(student, d, dayOffs, dayTempOns, rates);
-    if (dayCost > 0) totalCost += dayCost + calcDayCookingCharge(student, d, dayOffs, dayTempOns, rates);
+    if (dayCost > 0) {
+      totalMealCost += dayCost;
+      activeDays++;
+    }
     d = addDays(d, 1);
   }
+  // Tier-based cooking charge: ১-৭ দিন per-day, ৮+ দিন flat (১৫ × rate)
+  const totalCookingCharge = calcCookingCharge(activeDays, cookingRate);
+  const totalCost = totalMealCost + totalCookingCharge;
   const guestMeals = getData('guestMeals', []);
   const guestCost = guestMeals
     .filter(g => g.studentId === student.id && (g.status || 'approved') === 'approved')
@@ -12374,15 +12387,17 @@ function calcBillPreview() {
   const tempOns = getData('tempMealOns', {});
   const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
   const comboFull_br = getComboFull(s, rates);
-  let totalMealCost = 0, totalCookingCharge = 0, activeDays = 0;
+  let totalMealCost = 0, activeDays = 0;
   let d = startDate;
   while (d <= endDate) {
     const dayOffs = (offs[s.id] || {})[d] || [];
     const dayTempOns = (tempOns[s.id] || {})[d] || [];
     const dayCost = calcDayMealCost(s, d, dayOffs, dayTempOns, rates);
-    if (dayCost > 0) { totalMealCost += dayCost; totalCookingCharge += comboFull_br.cooking; activeDays++; }
+    if (dayCost > 0) { totalMealCost += dayCost; activeDays++; }
     d = addDays(d, 1);
   }
+  // Tier-based cooking charge: ১-৭ দিন per-day, ৮+ দিন flat ৭৫
+  const totalCookingCharge = calcCookingCharge(activeDays, comboFull_br.cooking || 5);
   const guestMeals = getData('guestMeals', []);
   const guestCost = guestMeals
     .filter(g => g.studentId === s.id && (g.status || 'approved') === 'approved')
@@ -12447,15 +12462,17 @@ function adminAddBill() {
   const tempOns = getData('tempMealOns', {});
   const rates = getData('milRates', { comboSD:55, cookingSD:5, comboSR:45, cookingSR:5, comboAll:85, cookingAll:5 });
   const comboFull_ab = getComboFull(s, rates);
-  let mealCost = 0, cookingCharge = 0, activeDays = 0;
+  let mealCost = 0, activeDays = 0;
   let d = startDate;
   while (d <= endDate) {
     const dayOffs = (offs[s.id] || {})[d] || [];
     const dayTempOns = (tempOns[s.id] || {})[d] || [];
     const dayCost = calcDayMealCost(s, d, dayOffs, dayTempOns, rates);
-    if (dayCost > 0) { mealCost += dayCost; cookingCharge += comboFull_ab.cooking; activeDays++; }
+    if (dayCost > 0) { mealCost += dayCost; activeDays++; }
     d = addDays(d, 1);
   }
+  // Tier-based cooking charge: ১-৭ দিন per-day, ৮+ দিন flat ৭৫
+  const cookingCharge = calcCookingCharge(activeDays, comboFull_ab.cooking || 5);
   const guestMeals = getData('guestMeals', []);
   const guestCost = guestMeals
     .filter(g => g.studentId === s.id && (g.status||'approved') === 'approved')
